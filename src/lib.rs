@@ -26,6 +26,7 @@ impl From<ParsedData> for Pattern {
     }
 }
 
+/// Load a pattern from a file path.
 pub fn load_file<P: AsRef<Path>>(path: P) -> Result<Pattern, GeddesError> {
     let path = path.as_ref();
     let file = File::open(path)?;
@@ -33,6 +34,15 @@ pub fn load_file<P: AsRef<Path>>(path: P) -> Result<Pattern, GeddesError> {
     load_from_reader(file, filename)
 }
 
+/// Load a pattern from any reader that implements Read + Seek.
+/// 
+/// This is useful for loading from bytes (using `Cursor<Vec<u8>>`) or other non-file sources,
+/// which is particularly important for WASM environments.
+/// 
+/// # Arguments
+/// 
+/// * `reader` - The reader to read from. Must implement `Read` and `Seek`.
+/// * `filename` - The name of the file (used to determine format via extension).
 pub fn load_from_reader<R: Read + Seek>(reader: R, filename: &str) -> Result<Pattern, GeddesError> {
     let ext = Path::new(filename)
         .extension()
