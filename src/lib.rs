@@ -4,6 +4,8 @@ mod parser;
 pub use error::GeddesError;
 use parser::{parse_rasx, parse_raw, parse_xy, ParsedData};
 use std::path::Path;
+use std::fs::File;
+use std::io::{Read, Seek};
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -26,12 +28,22 @@ impl From<ParsedData> for Pattern {
 
 pub fn load_file<P: AsRef<Path>>(path: P) -> Result<Pattern, GeddesError> {
     let path = path.as_ref();
-    let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
+    let file = File::open(path)?;
+    let filename = path.file_name().and_then(|s| s.to_str()).unwrap_or("");
+    load_from_reader(file, filename)
+}
+
+pub fn load_from_reader<R: Read + Seek>(reader: R, filename: &str) -> Result<Pattern, GeddesError> {
+    let ext = Path::new(filename)
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_lowercase();
     
     let data = match ext.as_str() {
-        "xy" | "xye" => parse_xy(path)?,
-        "rasx" => parse_rasx(path)?,
-        "raw" => parse_raw(path)?,
+        "xy" | "xye" => parse_xy(reader)?,
+        "rasx" => parse_rasx(reader)?,
+        "raw" => parse_raw(reader)?,
         _ => return Err(GeddesError::UnknownFormat),
     };
     

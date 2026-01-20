@@ -1,7 +1,5 @@
 use crate::error::GeddesError;
-use std::fs::File;
-use std::io::{BufRead, BufReader, Read};
-use std::path::Path;
+use std::io::{BufRead, BufReader, Read, Seek};
 use zip::ZipArchive;
 
 #[derive(Debug)]
@@ -11,9 +9,8 @@ pub struct ParsedData {
     pub e: Option<Vec<f64>>,
 }
 
-pub fn parse_xy(path: &Path) -> Result<ParsedData, GeddesError> {
-    let file = File::open(path)?;
-    let reader = BufReader::new(file);
+pub fn parse_xy<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
+    let reader = BufReader::new(reader);
     let mut x = Vec::new();
     let mut y = Vec::new();
     let mut e = Vec::new();
@@ -46,9 +43,8 @@ pub fn parse_xy(path: &Path) -> Result<ParsedData, GeddesError> {
     })
 }
 
-pub fn parse_rasx(path: &Path) -> Result<ParsedData, GeddesError> {
-    let file = File::open(path)?;
-    let mut archive = ZipArchive::new(file)?;
+pub fn parse_rasx<R: Read + Seek>(reader: R) -> Result<ParsedData, GeddesError> {
+    let mut archive = ZipArchive::new(reader)?;
     
     let names: Vec<String> = (0..archive.len())
         .filter_map(|i| archive.by_index(i).ok().map(|f| f.name().to_string()))
@@ -80,9 +76,8 @@ pub fn parse_rasx(path: &Path) -> Result<ParsedData, GeddesError> {
      Ok(ParsedData { x, y, e: None })
 }
 
-pub fn parse_raw(path: &Path) -> Result<ParsedData, GeddesError> {
-    let file = File::open(path)?;
-    let reader = BufReader::new(file);
+pub fn parse_raw<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
+    let reader = BufReader::new(reader);
     let mut lines = reader.lines();
     
     let mut start = 0.0;
