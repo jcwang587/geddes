@@ -15,7 +15,6 @@ fn main() {
     let pattern = load_file(Path::new("test/data/xy/Y2O3_vesta.xy")).unwrap();
     println!("Loaded {} points", pattern.x.len());
     
-    // To JSON
     let json = serde_json::to_string(&pattern).unwrap();
 }
 ```
@@ -34,10 +33,6 @@ Add this to your `Cargo.toml`:
 [dependencies]
 geddes = "0.1.0"
 ```
-
-## For Electron / JavaScript
-
-This crate is designed to be easily compiled to WebAssembly (WASM) or used with N-API for Electron applications.
 
 ## License
 
