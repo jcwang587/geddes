@@ -2,7 +2,7 @@ mod error;
 mod parser;
 
 pub use error::GeddesError;
-use parser::{parse_rasx, parse_raw, parse_xy, ParsedData};
+use parser::{parse_csv, parse_rasx, parse_raw, parse_xy, ParsedData};
 use std::path::Path;
 use std::fs::File;
 use std::io::{Read, Seek};
@@ -52,6 +52,7 @@ pub fn load_from_reader<R: Read + Seek>(reader: R, filename: &str) -> Result<Pat
     
     let data = match ext.as_str() {
         "xy" | "xye" => parse_xy(reader)?,
+        "csv" => parse_csv(reader)?,
         "rasx" => parse_rasx(reader)?,
         "raw" => parse_raw(reader)?,
         _ => return Err(GeddesError::UnknownFormat),

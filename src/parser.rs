@@ -43,6 +43,45 @@ pub fn parse_xy<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
     })
 }
 
+pub fn parse_csv<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
+    let reader = BufReader::new(reader);
+    let mut x = Vec::new();
+    let mut y = Vec::new();
+    let mut e = Vec::new();
+
+    for line in reader.lines() {
+        let line = line?;
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') || line.starts_with('!') {
+            continue;
+        }
+        // Support both comma-separated and whitespace-separated CSV-like files.
+        let parts: Vec<&str> = line
+            .split(|c: char| c == ',' || c.is_whitespace())
+            .map(|p| p.trim())
+            .filter(|p| !p.is_empty())
+            .collect();
+        if parts.len() >= 2 {
+            if let (Ok(val_x), Ok(val_y)) = (parts[0].parse::<f64>(), parts[1].parse::<f64>()) {
+                x.push(val_x);
+                y.push(val_y);
+                if parts.len() >= 3 {
+                    if let Ok(val_e) = parts[2].parse::<f64>() {
+                        e.push(val_e);
+                    }
+                }
+            }
+        }
+    }
+
+    let has_error = !e.is_empty() && e.len() == x.len();
+    Ok(ParsedData { 
+        x, 
+        y, 
+        e: if has_error { Some(e) } else { None } 
+    })
+}
+
 pub fn parse_rasx<R: Read + Seek>(reader: R) -> Result<ParsedData, GeddesError> {
     let mut archive = ZipArchive::new(reader)?;
     
@@ -55,19 +94,21 @@ pub fn parse_rasx<R: Read + Seek>(reader: R) -> Result<ParsedData, GeddesError> 
         .find(|n| n.contains("Profile") && n.ends_with(".txt"))
         .ok_or_else(|| GeddesError::FileNotFoundInArchive("Profile*.txt".to_string()))?;
 
-    let mut file = archive.by_name(profile_name)?;
-    let mut content = String::new();
-    file.read_to_string(&mut content)?;
-    
+    let file = archive.by_name(profile_name)?;
+    let reader = BufReader::new(file);
+
     let mut x = Vec::new();
     let mut y = Vec::new();
     
-    for line in content.lines() {
+    for line in reader.lines() {
+        let line = line?;
         let line = line.trim();
-        if line.is_empty() { continue; }
+        if line.is_empty() {
+            continue;
+        }
         let parts: Vec<&str> = line.split_whitespace().collect();
         if parts.len() >= 2 {
-             if let (Ok(val_x), Ok(val_y)) = (parts[0].parse::<f64>(), parts[1].parse::<f64>()) {
+            if let (Ok(val_x), Ok(val_y)) = (parts[0].parse::<f64>(), parts[1].parse::<f64>()) {
                 x.push(val_x);
                 y.push(val_y);
             }
