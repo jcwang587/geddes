@@ -3,10 +3,10 @@ mod parser;
 
 pub use error::GeddesError;
 use parser::{parse_csv, parse_rasx, parse_raw, parse_xy, ParsedData};
-use std::path::Path;
+use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::{Read, Seek};
-use serde::{Serialize, Deserialize};
+use std::path::Path;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Pattern {
@@ -35,12 +35,12 @@ pub fn load_file<P: AsRef<Path>>(path: P) -> Result<Pattern, GeddesError> {
 }
 
 /// Load a pattern from any reader that implements Read + Seek.
-/// 
+///
 /// This is useful for loading from bytes (using `Cursor<Vec<u8>>`) or other non-file sources,
 /// which is particularly important for WASM environments.
-/// 
+///
 /// # Arguments
-/// 
+///
 /// * `reader` - The reader to read from. Must implement `Read` and `Seek`.
 /// * `filename` - The name of the file (used to determine format via extension).
 pub fn load_from_reader<R: Read + Seek>(reader: R, filename: &str) -> Result<Pattern, GeddesError> {
@@ -49,7 +49,7 @@ pub fn load_from_reader<R: Read + Seek>(reader: R, filename: &str) -> Result<Pat
         .and_then(|s| s.to_str())
         .unwrap_or("")
         .to_lowercase();
-    
+
     let data = match ext.as_str() {
         "xy" | "xye" => parse_xy(reader)?,
         "csv" => parse_csv(reader)?,
@@ -57,6 +57,6 @@ pub fn load_from_reader<R: Read + Seek>(reader: R, filename: &str) -> Result<Pat
         "raw" => parse_raw(reader)?,
         _ => return Err(GeddesError::UnknownFormat),
     };
-    
+
     Ok(data.into())
 }
