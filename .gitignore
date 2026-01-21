@@ -1,5 +1,2 @@
-test/
-
-# Added by cargo
-
 /target
+.venv/
