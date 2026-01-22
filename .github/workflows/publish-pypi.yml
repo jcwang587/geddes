@@ -23,10 +23,19 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@v7
-      - name: Build wheels with uv
-        run: uv build --wheel
+      - name: Build wheels with maturin (manylinux)
+        if: matrix.os == 'ubuntu-latest'
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: --release --out dist -i python${{ matrix.python-version }}
+          manylinux: auto
+      - name: Build wheels with maturin
+        if: matrix.os != 'ubuntu-latest'
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: --release --out dist -i python
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v6
         with:
@@ -51,10 +60,11 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@v7
-      - name: Build sdist with uv
-        run: uv build --sdist
+      - name: Build sdist with maturin
+        uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist
       - name: Download wheel artifacts
         uses: actions/download-artifact@v7
         with:
