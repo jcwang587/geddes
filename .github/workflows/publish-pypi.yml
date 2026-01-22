@@ -35,7 +35,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           command: build
-          args: --release --out dist -i python
+          args: --release --out dist -i python${{ matrix.python-version }}
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v6
         with:
