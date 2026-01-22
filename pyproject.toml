@@ -17,6 +17,12 @@ classifiers = [
 ]
 dynamic = ["version"]
 
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
 [tool.maturin]
 bindings = "pyo3"
 features = ["python"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
