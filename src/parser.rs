@@ -131,7 +131,7 @@ pub fn parse_rasx<R: Read + Seek>(reader: R) -> Result<ParsedData, GeddesError> 
 /// Parses GSAS RAW files.
 ///
 /// Expects a `BANK` header line to determine start angle and step size.
-pub fn parse_raw<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
+pub fn parse_gsas_raw<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
     let reader = BufReader::new(reader);
     let mut lines = reader.lines();
 
@@ -190,4 +190,13 @@ pub fn parse_raw<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
     }
 
     Ok(ParsedData { x, y, e: None })
+}
+
+/// Parses Bruker binary RAW files.
+///
+/// (Currently a placeholder returning an error)
+pub fn parse_bruker_raw<R: Read>(_reader: R) -> Result<ParsedData, GeddesError> {
+    Err(GeddesError::Parse(
+        "Bruker binary RAW format not yet supported".into(),
+    ))
 }

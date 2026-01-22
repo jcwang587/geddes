@@ -7,10 +7,10 @@ mod error;
 mod parser;
 
 pub use error::GeddesError;
-use parser::{parse_csv, parse_rasx, parse_raw, parse_xy, ParsedData};
+use parser::{parse_bruker_raw, parse_csv, parse_gsas_raw, parse_rasx, parse_xy, ParsedData};
 use serde::{Deserialize, Serialize};
 use std::fs::File;
-use std::io::{Read, Seek};
+use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 
 /// Represents a diffraction pattern with position, intensity, and optional error.
@@ -101,11 +101,31 @@ pub fn load_from_reader<R: Read + Seek>(reader: R, filename: &str) -> Result<Pat
         .unwrap_or("")
         .to_lowercase();
 
+    let mut reader = reader;
     let data = match ext.as_str() {
         "xy" | "xye" => parse_xy(reader)?,
         "csv" => parse_csv(reader)?,
         "rasx" => parse_rasx(reader)?,
-        "raw" => parse_raw(reader)?,
+        "raw" => {
+            // Check for binary (Bruker) vs Text (GSAS)
+            let mut buffer = [0u8; 1024];
+            let bytes_read = reader.read(&mut buffer)?;
+            reader.seek(SeekFrom::Start(0))?;
+
+            // Simple heuristic: if we find null bytes or excessive non-printable chars, assume binary.
+            // Or if we see "BANK" in the first chunk, assume GSAS.
+            let chunk = &buffer[..bytes_read];
+            let is_binary = chunk.iter().any(|&b| b == 0);
+            
+            // GSAS usually starts with a title line or BANK, and is text.
+            // Bruker binary usually has non-text bytes.
+
+            if is_binary {
+                parse_bruker_raw(reader)?
+            } else {
+                parse_gsas_raw(reader)?
+            }
+        },
         _ => return Err(GeddesError::UnknownFormat),
     };
 
