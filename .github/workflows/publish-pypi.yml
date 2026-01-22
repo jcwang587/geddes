@@ -56,7 +56,7 @@ jobs:
       - name: Build sdist with uv
         run: uv build --sdist
       - name: Download wheel artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           pattern: wheels-*
           path: dist
