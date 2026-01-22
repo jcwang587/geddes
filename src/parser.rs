@@ -2,6 +2,7 @@ use crate::error::GeddesError;
 use std::io::{BufRead, BufReader, Read, Seek};
 use zip::ZipArchive;
 
+/// Intermediate structure to hold parsed data before converting to the public Pattern struct.
 #[derive(Debug)]
 pub struct ParsedData {
     pub x: Vec<f64>,
@@ -9,6 +10,9 @@ pub struct ParsedData {
     pub e: Option<Vec<f64>>,
 }
 
+/// Parses standard XY files (two or three columns: x, y, [e]).
+///
+/// Ignores lines starting with '#' or '!'.
 pub fn parse_xy<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
     let reader = BufReader::new(reader);
     let mut x = Vec::new();
@@ -43,6 +47,9 @@ pub fn parse_xy<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
     })
 }
 
+/// Parses CSV files.
+///
+/// Supports comma or whitespace as delimiters.
 pub fn parse_csv<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
     let reader = BufReader::new(reader);
     let mut x = Vec::new();
@@ -82,6 +89,9 @@ pub fn parse_csv<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
     })
 }
 
+/// Parses Rigaku RASX files (zipped XML/text format).
+///
+/// Looks for a `Profile*.txt` file inside the archive.
 pub fn parse_rasx<R: Read + Seek>(reader: R) -> Result<ParsedData, GeddesError> {
     let mut archive = ZipArchive::new(reader)?;
 
@@ -118,6 +128,9 @@ pub fn parse_rasx<R: Read + Seek>(reader: R) -> Result<ParsedData, GeddesError> 
     Ok(ParsedData { x, y, e: None })
 }
 
+/// Parses GSAS RAW files.
+///
+/// Expects a `BANK` header line to determine start angle and step size.
 pub fn parse_raw<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
     let reader = BufReader::new(reader);
     let mut lines = reader.lines();
@@ -127,7 +140,7 @@ pub fn parse_raw<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
 
     let mut header_found = false;
 
-    while let Some(line_res) = lines.next() {
+    for line_res in lines.by_ref() {
         let line = line_res?;
         if line.starts_with("BANK") {
             let parts: Vec<&str> = line.split_whitespace().collect();
