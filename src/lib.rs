@@ -121,8 +121,7 @@ pub fn load_from_reader<R: Read + Seek>(reader: R, filename: &str) -> Result<Pat
             let bytes_read = reader.read(&mut buffer)?;
             reader.seek(SeekFrom::Start(0))?;
 
-            // Simple heuristic: if we find null bytes or excessive non-printable chars, assume binary.
-            // Or if we see "BANK" in the first chunk, assume GSAS.
+            // Simple heuristic: if we find null bytes, assume binary.
             let chunk = &buffer[..bytes_read];
             let is_binary = chunk.iter().any(|&b| b == 0);
 
