@@ -1,6 +1,6 @@
 [package]
 name = "geddes"
-version = "0.1.4-alpha"
+version = "0.1.4-beta"
 edition = "2021"
 description = "A Rust library for parsing XRD pattern files (xy, rasx, raw)"
 license = "MIT"
