@@ -28,7 +28,7 @@ fn load_bytes(data: &PyBytes, filename: &str) -> PyResult<Pattern> {
 }
 
 #[pymodule]
-fn geddes(_py: Python, m: &PyModule) -> PyResult<()> {
+fn geddes(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Pattern>()?;
     m.add_function(wrap_pyfunction!(load_file_py, m)?)?;
     m.add_function(wrap_pyfunction!(load_bytes, m)?)?;

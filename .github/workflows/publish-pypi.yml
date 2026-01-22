@@ -1,0 +1,37 @@
+name: publish pypi
+on:
+  workflow_dispatch:
+    inputs:
+      publishToPyPI:
+        description: 'Publish to PyPI?'
+        required: true
+        default: 'no'
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  pypi-publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/geddes/
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with: {python-version: "3.13"}
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v6
+      - name: Build package with uv
+        run: uv build
+      - name: Publish package to PyPI
+        if: inputs.publishToPyPI == 'yes'
+        uses: pypa/gh-action-pypi-publish@release/v1
