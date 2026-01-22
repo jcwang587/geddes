@@ -2,6 +2,7 @@ use crate::error::GeddesError;
 use std::io::{BufRead, BufReader, Read, Seek};
 use zip::ZipArchive;
 
+/// Intermediate structure to hold parsed data before converting to the public Pattern struct.
 #[derive(Debug)]
 pub struct ParsedData {
     pub x: Vec<f64>,
@@ -9,6 +10,24 @@ pub struct ParsedData {
     pub e: Option<Vec<f64>>,
 }
 
+/// Helper to parse x, y, and optional e from string parts.
+fn parse_columns(parts: &[&str], x: &mut Vec<f64>, y: &mut Vec<f64>, e: &mut Vec<f64>) {
+    if parts.len() >= 2 {
+        if let (Ok(val_x), Ok(val_y)) = (parts[0].parse::<f64>(), parts[1].parse::<f64>()) {
+            x.push(val_x);
+            y.push(val_y);
+            if parts.len() >= 3 {
+                if let Ok(val_e) = parts[2].parse::<f64>() {
+                    e.push(val_e);
+                }
+            }
+        }
+    }
+}
+
+/// Parses standard XY files (two or three columns: x, y, [e]).
+///
+/// Ignores lines starting with '#' or '!'.
 pub fn parse_xy<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
     let reader = BufReader::new(reader);
     let mut x = Vec::new();
@@ -22,17 +41,7 @@ pub fn parse_xy<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
             continue;
         }
         let parts: Vec<&str> = line.split_whitespace().collect();
-        if parts.len() >= 2 {
-            if let (Ok(val_x), Ok(val_y)) = (parts[0].parse::<f64>(), parts[1].parse::<f64>()) {
-                x.push(val_x);
-                y.push(val_y);
-                if parts.len() >= 3 {
-                    if let Ok(val_e) = parts[2].parse::<f64>() {
-                        e.push(val_e);
-                    }
-                }
-            }
-        }
+        parse_columns(&parts, &mut x, &mut y, &mut e);
     }
 
     let has_error = !e.is_empty() && e.len() == x.len();
@@ -43,6 +52,9 @@ pub fn parse_xy<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
     })
 }
 
+/// Parses CSV files.
+///
+/// Supports comma or whitespace as delimiters.
 pub fn parse_csv<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
     let reader = BufReader::new(reader);
     let mut x = Vec::new();
@@ -61,17 +73,7 @@ pub fn parse_csv<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
             .map(|p| p.trim())
             .filter(|p| !p.is_empty())
             .collect();
-        if parts.len() >= 2 {
-            if let (Ok(val_x), Ok(val_y)) = (parts[0].parse::<f64>(), parts[1].parse::<f64>()) {
-                x.push(val_x);
-                y.push(val_y);
-                if parts.len() >= 3 {
-                    if let Ok(val_e) = parts[2].parse::<f64>() {
-                        e.push(val_e);
-                    }
-                }
-            }
-        }
+        parse_columns(&parts, &mut x, &mut y, &mut e);
     }
 
     let has_error = !e.is_empty() && e.len() == x.len();
@@ -82,6 +84,9 @@ pub fn parse_csv<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
     })
 }
 
+/// Parses Rigaku RASX files (zipped XML/text format).
+///
+/// Looks for a `Profile*.txt` file inside the archive.
 pub fn parse_rasx<R: Read + Seek>(reader: R) -> Result<ParsedData, GeddesError> {
     let mut archive = ZipArchive::new(reader)?;
 
@@ -92,7 +97,12 @@ pub fn parse_rasx<R: Read + Seek>(reader: R) -> Result<ParsedData, GeddesError> 
     // Prioritize Data0/Profile0.txt, or find any Profile*.txt
     let profile_name = names
         .iter()
-        .find(|n| n.contains("Profile") && n.ends_with(".txt"))
+        .find(|n| n.as_str() == "Data0/Profile0.txt")
+        .or_else(|| {
+            names
+                .iter()
+                .find(|n| n.contains("Profile") && n.ends_with(".txt"))
+        })
         .ok_or_else(|| GeddesError::FileNotFoundInArchive("Profile*.txt".to_string()))?;
 
     let file = archive.by_name(profile_name)?;
@@ -118,6 +128,9 @@ pub fn parse_rasx<R: Read + Seek>(reader: R) -> Result<ParsedData, GeddesError> 
     Ok(ParsedData { x, y, e: None })
 }
 
+/// Parses GSAS RAW files.
+///
+/// Expects a `BANK` header line to determine start angle and step size.
 pub fn parse_raw<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
     let reader = BufReader::new(reader);
     let mut lines = reader.lines();
@@ -127,7 +140,7 @@ pub fn parse_raw<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
 
     let mut header_found = false;
 
-    while let Some(line_res) = lines.next() {
+    for line_res in lines.by_ref() {
         let line = line_res?;
         if line.starts_with("BANK") {
             let parts: Vec<&str> = line.split_whitespace().collect();
@@ -159,6 +172,9 @@ pub fn parse_raw<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
 
     for line in lines {
         let line = line?;
+        if line.starts_with("BANK") {
+            break;
+        }
         let parts = line.split_whitespace();
         for part in parts {
             if let Ok(val) = part.parse::<f64>() {
