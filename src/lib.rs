@@ -6,7 +6,12 @@
 mod error;
 mod parser;
 
+#[cfg(feature = "python")]
+mod python;
+
 pub use error::GeddesError;
+#[cfg(feature = "python")]
+use pyo3::prelude::*;
 use parser::{parse_bruker_raw, parse_csv, parse_gsas_raw, parse_rasx, parse_xy, ParsedData};
 use serde::{Deserialize, Serialize};
 use std::fs::File;
@@ -14,14 +19,18 @@ use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 
 /// Represents a diffraction pattern with position, intensity, and optional error.
+#[cfg_attr(feature = "python", pyclass)]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Pattern {
     /// The x-axis values (e.g., 2-theta or Q).
+    #[cfg_attr(feature = "python", pyo3(get))]
     pub x: Vec<f64>,
     /// The y-axis values (intensity).
+    #[cfg_attr(feature = "python", pyo3(get))]
     pub y: Vec<f64>,
     /// The uncertainty/error values, if available.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "python", pyo3(get))]
     pub e: Option<Vec<f64>>,
 }
 
