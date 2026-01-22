@@ -22,7 +22,7 @@ fn load_file_py(path: &str) -> PyResult<Pattern> {
 }
 
 #[pyfunction]
-fn load_bytes(data: &PyBytes, filename: &str) -> PyResult<Pattern> {
+fn load_bytes(data: &Bound<'_, PyBytes>, filename: &str) -> PyResult<Pattern> {
     let cursor = Cursor::new(data.as_bytes());
     load_from_reader(cursor, filename).map_err(to_py_err)
 }

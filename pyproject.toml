@@ -1,12 +1,12 @@
 [build-system]
-requires = ["maturin>=1.4,<2.0"]
+requires = ["maturin>=1.11,<2.0"]
 build-backend = "maturin"
 
 [project]
 name = "geddes"
 description = "A Python library for parsing XRD pattern files"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 license = { text = "MIT" }
 keywords = ["xrd", "parser", "science", "crystallography", "chemistry"]
 classifiers = [
