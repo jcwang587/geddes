@@ -1,5 +1,9 @@
 # Geddes
 
+[![Crates.io](https://img.shields.io/crates/v/geddes)](https://crates.io/crates/geddes)
+[![PyPI](https://img.shields.io/pypi/v/geddes)](https://pypi.org/project/geddes/)
+
+
 A Rust XRD pattern parser with Python bindings. Supports:
 - `.xy` / `.xye` (ASCII, space separated)
 - `.rasx` (Rigaku, Zip containing Profile text)
