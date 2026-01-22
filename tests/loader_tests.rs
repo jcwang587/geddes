@@ -28,7 +28,7 @@ fn test_load_rasx() {
 
 #[test]
 fn test_load_raw() {
-    let path = PathBuf::from("tests/data/raw/sample.raw");
+    let path = PathBuf::from("tests/data/gsas_raw/sample.raw");
     let start = Instant::now();
     let pattern = load_file(&path).expect("Failed to load raw file");
     println!("IO time for raw: {:?}", start.elapsed());
@@ -81,7 +81,7 @@ fn test_load_from_bytes_rasx() {
 
 #[test]
 fn test_load_from_bytes_raw() {
-    let path = PathBuf::from("tests/data/raw/sample.raw");
+    let path = PathBuf::from("tests/data/gsas_raw/sample.raw");
     let start = Instant::now();
     let bytes = read(&path).expect("Failed to read file bytes");
     println!("IO time (read bytes) for raw: {:?}", start.elapsed());

@@ -1,0 +1,65 @@
+name: publish pypi
+on:
+  workflow_dispatch:
+    inputs:
+      publishToPyPI:
+        description: 'Publish to PyPI?'
+        required: true
+        default: 'no'
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  build-wheels:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v6
+      - name: Build wheels with uv
+        run: uv build --wheel
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}-${{ matrix.python-version }}
+          path: dist/*.whl
+          if-no-files-found: error
+  publish:
+    runs-on: ubuntu-latest
+    needs: build-wheels
+    if: inputs.publishToPyPI == 'yes'
+    environment:
+      name: pypi
+      url: https://pypi.org/project/geddes/
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v6
+      - name: Build sdist with uv
+        run: uv build --sdist
+      - name: Download wheel artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          path: dist
+          merge-multiple: true
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
