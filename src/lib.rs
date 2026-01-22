@@ -10,9 +10,9 @@ mod parser;
 mod python;
 
 pub use error::GeddesError;
+use parser::{parse_bruker_raw, parse_csv, parse_gsas_raw, parse_rasx, parse_xy, ParsedData};
 #[cfg(feature = "python")]
 use pyo3::prelude::*;
-use parser::{parse_bruker_raw, parse_csv, parse_gsas_raw, parse_rasx, parse_xy, ParsedData};
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
