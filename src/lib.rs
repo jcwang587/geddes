@@ -116,7 +116,7 @@ pub fn load_from_reader<R: Read + Seek>(reader: R, filename: &str) -> Result<Pat
             // Or if we see "BANK" in the first chunk, assume GSAS.
             let chunk = &buffer[..bytes_read];
             let is_binary = chunk.iter().any(|&b| b == 0);
-            
+
             // GSAS usually starts with a title line or BANK, and is text.
             // Bruker binary usually has non-text bytes.
 
@@ -125,7 +125,7 @@ pub fn load_from_reader<R: Read + Seek>(reader: R, filename: &str) -> Result<Pat
             } else {
                 parse_gsas_raw(reader)?
             }
-        },
+        }
         _ => return Err(GeddesError::UnknownFormat),
     };
 
