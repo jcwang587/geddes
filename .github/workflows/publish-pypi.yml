@@ -28,7 +28,7 @@ jobs:
       - name: Build wheels with uv
         run: uv build --wheel
       - name: Upload wheel artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wheels-${{ matrix.os }}-${{ matrix.python-version }}
           path: dist/*.whl
