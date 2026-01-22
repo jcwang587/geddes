@@ -25,6 +25,25 @@ pub struct Pattern {
     pub e: Option<Vec<f64>>,
 }
 
+impl Pattern {
+    /// Creates a new Pattern, returning an error if lengths are inconsistent.
+    pub fn new(x: Vec<f64>, y: Vec<f64>, e: Option<Vec<f64>>) -> Result<Self, GeddesError> {
+        if x.len() != y.len() {
+            return Err(GeddesError::Parse(
+                "x and y must have the same length".into(),
+            ));
+        }
+        if let Some(ref e_vec) = e {
+            if e_vec.len() != x.len() {
+                return Err(GeddesError::Parse(
+                    "e must have the same length as x and y".into(),
+                ));
+            }
+        }
+        Ok(Pattern { x, y, e })
+    }
+}
+
 impl From<ParsedData> for Pattern {
     fn from(data: ParsedData) -> Self {
         Pattern {
