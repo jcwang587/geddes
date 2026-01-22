@@ -1,6 +1,6 @@
 # Geddes
 
-A Rust library to parse XRD pattern files. Supports:
+A Rust XRD pattern parser with Python bindings. Supports:
 - `.xy` / `.xye` (ASCII, space separated)
 - `.rasx` (Rigaku, Zip containing Profile text)
 - `.raw` (GSAS format, text based)
