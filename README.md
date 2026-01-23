@@ -9,6 +9,7 @@ A Rust XRD pattern parser with Python bindings. Supports:
 - `.rasx` (Rigaku, Zip containing Profile text)
 - `.raw` (GSAS format, text based)
 - `.csv` (comma separated values)
+- `.xrdml` (Panalytical XML-based format)
 
 ## Usage
 

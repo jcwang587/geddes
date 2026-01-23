@@ -54,6 +54,17 @@ fn test_load_csv() {
 }
 
 #[test]
+fn test_load_xrdml() {
+    let path = PathBuf::from("tests/data/xrdml/sample.xrdml");
+    let start = Instant::now();
+    let pattern = load_file(&path).expect("Failed to load xrdml file");
+    println!("IO time for xrdml: {:?}", start.elapsed());
+    assert!(pattern.x.len() > 0);
+    assert_eq!(pattern.x.len(), pattern.y.len());
+    println!("Loaded {} points from xrdml", pattern.x.len());
+}
+
+#[test]
 fn test_load_from_bytes_xy() {
     let path = PathBuf::from("tests/data/xy/sample.xy");
     let start = Instant::now();
@@ -108,4 +119,17 @@ fn test_load_from_bytes_csv() {
         .as_ref()
         .map(|v| v.len() == pattern.x.len())
         .unwrap_or(true));
+}
+
+#[test]
+fn test_load_from_bytes_xrdml() {
+    let path = PathBuf::from("tests/data/xrdml/sample.xrdml");
+    let start = Instant::now();
+    let bytes = read(&path).expect("Failed to read file bytes");
+    println!("IO time (read bytes) for xrdml: {:?}", start.elapsed());
+    let cursor = Cursor::new(bytes);
+
+    let pattern = load_from_reader(cursor, "sample.xrdml").expect("Failed to load xrdml from bytes");
+    assert!(pattern.x.len() > 0);
+    assert_eq!(pattern.x.len(), pattern.y.len());
 }

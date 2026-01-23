@@ -57,6 +57,7 @@ name = "geddes"
 version = "0.1.4"
 dependencies = [
  "pyo3",
+ "quick-xml",
  "serde",
  "serde_json",
  "thiserror",
@@ -217,6 +218,15 @@ dependencies = [
  "pyo3-build-config",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "quick-xml"
+version = "0.39.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2e3bf4aa9d243beeb01a7b3bc30b77cfe2c44e24ec02d751a7104a53c2c49a1"
+dependencies = [
+ "memchr",
 ]
 
 [[package]]
