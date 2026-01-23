@@ -1,12 +1,12 @@
 [package]
 name = "geddes"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 description = "A Rust library for parsing XRD pattern files"
 license = "MIT"
 repository = "https://github.com/jcwang587/geddes"
 readme = "README.md"
-keywords = ["xrd", "parser", "science", "crystallography", "chemistry"]
+keywords = ["python", "rust", "parser", "reader", "xrd"]
 categories = ["science", "parsing"]
 
 [lib]
