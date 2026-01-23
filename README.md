@@ -19,7 +19,7 @@ use geddes::load_file;
 
 fn main() {
     let pattern = load_file("tests/data/xy/sample.xy").unwrap();
-    println!("Loaded {} points", pattern.x.len());
+    println!("{} {}", pattern.x.len(), pattern.y.len());
 }
 ```
 
@@ -35,7 +35,7 @@ fn main() {
     let data = fs::read("tests/data/xy/sample.xy").unwrap();
     let cursor = Cursor::new(data);
     let pattern = load_from_reader(cursor, "sample.xy").unwrap();
-    println!("Loaded {} points", pattern.x.len());
+    println!("{} {}", pattern.x.len(), pattern.y.len());
 }
 ```
 
@@ -61,7 +61,7 @@ with open("tests/data/xy/sample.xy", "rb") as f:
     data = f.read()
 
 pattern = geddes.load_bytes(data, "sample.xy")
-print(len(pattern.x))
+print(len(pattern.x), len(pattern.y))
 ```
 
 ## License
