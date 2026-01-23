@@ -187,9 +187,9 @@ pub fn parse_xrdml<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
                 _ => {}
             },
             Ok(Event::Text(e)) => {
-                let text = e.decode().map_err(|err| {
-                    GeddesError::Parse(format!("XRDML text decode error: {err}"))
-                })?;
+                let text = e
+                    .decode()
+                    .map_err(|err| GeddesError::Parse(format!("XRDML text decode error: {err}")))?;
                 let text = text.trim();
                 if text.is_empty() {
                     // Skip empty text nodes.
@@ -242,9 +242,7 @@ pub fn parse_xrdml<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
         end_pos.ok_or_else(|| GeddesError::Parse("XRDML missing 2Theta end position".into()))?;
 
     if intensities.is_empty() {
-        return Err(GeddesError::Parse(
-            "XRDML intensities not found".into(),
-        ));
+        return Err(GeddesError::Parse("XRDML intensities not found".into()));
     }
 
     let mut x = Vec::with_capacity(intensities.len());
