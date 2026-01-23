@@ -44,6 +44,13 @@ def test_load_file_csv():
     _assert_pattern(pattern)
 
 
+def test_load_file_xrdml():
+    """Load an XRDML file by path."""
+    path = DATA_DIR / "xrdml" / "sample.xrdml"
+    pattern = geddes.load_file(str(path))
+    _assert_pattern(pattern)
+
+
 def test_load_bytes_xy():
     """Load XY data from bytes."""
     path = DATA_DIR / "xy" / "sample.xy"
@@ -73,4 +80,12 @@ def test_load_bytes_csv():
     path = DATA_DIR / "csv" / "sample.csv"
     data = path.read_bytes()
     pattern = geddes.load_bytes(data, "sample.csv")
+    _assert_pattern(pattern)
+
+
+def test_load_bytes_xrdml():
+    """Load XRDML data from bytes."""
+    path = DATA_DIR / "xrdml" / "sample.xrdml"
+    data = path.read_bytes()
+    pattern = geddes.load_bytes(data, "sample.xrdml")
     _assert_pattern(pattern)

@@ -1,4 +1,6 @@
 use crate::error::GeddesError;
+use quick_xml::events::Event;
+use quick_xml::Reader;
 use std::io::{BufRead, BufReader, Read, Seek};
 use zip::ZipArchive;
 
@@ -126,6 +128,140 @@ pub fn parse_rasx<R: Read + Seek>(reader: R) -> Result<ParsedData, GeddesError> 
         }
     }
     Ok(ParsedData { x, y, e: None })
+}
+
+/// Parses Panalytical XRDML files (XML-based).
+///
+/// Extracts the 2Theta start/end positions and the intensities list.
+pub fn parse_xrdml<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
+    let reader = BufReader::new(reader);
+    let mut xml = Reader::from_reader(reader);
+    xml.config_mut().trim_text(true);
+
+    let mut buf = Vec::new();
+    let mut intensities = Vec::new();
+    let mut in_intensities = false;
+    let mut in_positions_2theta = false;
+    let mut capture_start = false;
+    let mut capture_end = false;
+    let mut start_pos: Option<f64> = None;
+    let mut end_pos: Option<f64> = None;
+
+    loop {
+        match xml.read_event_into(&mut buf) {
+            Ok(Event::Start(e)) => match e.local_name().as_ref() {
+                b"positions" => {
+                    in_positions_2theta = false;
+                    for attr in e.attributes() {
+                        let attr = attr.map_err(|err| {
+                            GeddesError::Parse(format!("XRDML attribute error: {err}"))
+                        })?;
+                        if attr.key.as_ref() == b"axis" {
+                            let axis = attr
+                                .unescape_value()
+                                .map_err(|err| {
+                                    GeddesError::Parse(format!(
+                                        "XRDML attribute decode error: {err}"
+                                    ))
+                                })?
+                                .into_owned();
+                            if axis == "2Theta" {
+                                in_positions_2theta = true;
+                            }
+                        }
+                    }
+                }
+                b"startPosition" => {
+                    if in_positions_2theta {
+                        capture_start = true;
+                    }
+                }
+                b"endPosition" => {
+                    if in_positions_2theta {
+                        capture_end = true;
+                    }
+                }
+                b"intensities" => {
+                    in_intensities = true;
+                }
+                _ => {}
+            },
+            Ok(Event::Text(e)) => {
+                let text = e.decode().map_err(|err| {
+                    GeddesError::Parse(format!("XRDML text decode error: {err}"))
+                })?;
+                let text = text.trim();
+                if text.is_empty() {
+                    // Skip empty text nodes.
+                } else if capture_start {
+                    start_pos = Some(text.parse::<f64>().map_err(|_| {
+                        GeddesError::Parse("XRDML invalid 2Theta start position".into())
+                    })?);
+                } else if capture_end {
+                    end_pos = Some(text.parse::<f64>().map_err(|_| {
+                        GeddesError::Parse("XRDML invalid 2Theta end position".into())
+                    })?);
+                } else if in_intensities {
+                    for part in text.split_whitespace() {
+                        if let Ok(value) = part.parse::<f64>() {
+                            intensities.push(value);
+                        }
+                    }
+                }
+            }
+            Ok(Event::End(e)) => match e.local_name().as_ref() {
+                b"positions" => {
+                    in_positions_2theta = false;
+                }
+                b"startPosition" => {
+                    capture_start = false;
+                }
+                b"endPosition" => {
+                    capture_end = false;
+                }
+                b"intensities" => {
+                    in_intensities = false;
+                    if !intensities.is_empty() && start_pos.is_some() && end_pos.is_some() {
+                        break;
+                    }
+                }
+                _ => {}
+            },
+            Ok(Event::Eof) => break,
+            Err(err) => {
+                return Err(GeddesError::Parse(format!("XRDML parse error: {err}")));
+            }
+            _ => {}
+        }
+        buf.clear();
+    }
+
+    let start = start_pos
+        .ok_or_else(|| GeddesError::Parse("XRDML missing 2Theta start position".into()))?;
+    let end =
+        end_pos.ok_or_else(|| GeddesError::Parse("XRDML missing 2Theta end position".into()))?;
+
+    if intensities.is_empty() {
+        return Err(GeddesError::Parse(
+            "XRDML intensities not found".into(),
+        ));
+    }
+
+    let mut x = Vec::with_capacity(intensities.len());
+    if intensities.len() == 1 {
+        x.push(start);
+    } else {
+        let step = (end - start) / (intensities.len() as f64 - 1.0);
+        for i in 0..intensities.len() {
+            x.push(start + (i as f64) * step);
+        }
+    }
+
+    Ok(ParsedData {
+        x,
+        y: intensities,
+        e: None,
+    })
 }
 
 /// Parses GSAS RAW files.

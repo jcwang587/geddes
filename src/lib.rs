@@ -1,7 +1,7 @@
 //! # Geddes
 //!
 //! `geddes` is a library for loading and parsing various diffraction pattern file formats.
-//! It supports common formats like `.xy`, `.csv`, `.rasx`, and `.raw`.
+//! It supports common formats like `.raw`, `.rasx`, `.xrdml`, `.xy` / `.xye`, and `.csv`.
 
 mod error;
 mod parser;
@@ -10,7 +10,9 @@ mod parser;
 mod python;
 
 pub use error::GeddesError;
-use parser::{parse_bruker_raw, parse_csv, parse_gsas_raw, parse_rasx, parse_xy, ParsedData};
+use parser::{
+    parse_bruker_raw, parse_gsas_raw, parse_rasx, parse_xrdml, parse_xy, parse_csv, ParsedData,
+};
 #[cfg(feature = "python")]
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -109,9 +111,6 @@ pub fn load_from_reader<R: Read + Seek>(reader: R, filename: &str) -> Result<Pat
 
     let mut reader = reader;
     let data = match ext.as_str() {
-        "xy" | "xye" => parse_xy(reader)?,
-        "csv" => parse_csv(reader)?,
-        "rasx" => parse_rasx(reader)?,
         "raw" => {
             // Check for binary (Bruker) vs Text (GSAS)
             let mut buffer = [0u8; 1024];
@@ -131,6 +130,10 @@ pub fn load_from_reader<R: Read + Seek>(reader: R, filename: &str) -> Result<Pat
                 parse_gsas_raw(reader)?
             }
         }
+        "rasx" => parse_rasx(reader)?,
+        "xrdml" => parse_xrdml(reader)?,
+        "xy" | "xye" => parse_xy(reader)?,
+        "csv" => parse_csv(reader)?,
         _ => return Err(GeddesError::UnknownFormat),
     };
 
