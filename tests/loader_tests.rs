@@ -5,29 +5,7 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 #[test]
-fn test_load_xy() {
-    let path = PathBuf::from("tests/data/xy/sample.xy");
-    let start = Instant::now();
-    let pattern = load_file(&path).expect("Failed to load xy file");
-    println!("IO time for xy: {:?}", start.elapsed());
-    assert!(pattern.x.len() > 0);
-    assert_eq!(pattern.x.len(), pattern.y.len());
-    println!("Loaded {} points from xy", pattern.x.len());
-}
-
-#[test]
-fn test_load_rasx() {
-    let path = PathBuf::from("tests/data/rasx/sample.rasx");
-    let start = Instant::now();
-    let pattern = load_file(&path).expect("Failed to load rasx file");
-    println!("IO time for rasx: {:?}", start.elapsed());
-    assert!(pattern.x.len() > 0);
-    assert_eq!(pattern.x.len(), pattern.y.len());
-    println!("Loaded {} points from rasx", pattern.x.len());
-}
-
-#[test]
-fn test_load_raw() {
+fn test_01_load_raw() {
     let path = PathBuf::from("tests/data/gsas_raw/sample.raw");
     let start = Instant::now();
     let pattern = load_file(&path).expect("Failed to load raw file");
@@ -38,7 +16,40 @@ fn test_load_raw() {
 }
 
 #[test]
-fn test_load_csv() {
+fn test_02_load_rasx() {
+    let path = PathBuf::from("tests/data/rasx/sample.rasx");
+    let start = Instant::now();
+    let pattern = load_file(&path).expect("Failed to load rasx file");
+    println!("IO time for rasx: {:?}", start.elapsed());
+    assert!(pattern.x.len() > 0);
+    assert_eq!(pattern.x.len(), pattern.y.len());
+    println!("Loaded {} points from rasx", pattern.x.len());
+}
+
+#[test]
+fn test_03_load_xrdml() {
+    let path = PathBuf::from("tests/data/xrdml/sample.xrdml");
+    let start = Instant::now();
+    let pattern = load_file(&path).expect("Failed to load xrdml file");
+    println!("IO time for xrdml: {:?}", start.elapsed());
+    assert!(pattern.x.len() > 0);
+    assert_eq!(pattern.x.len(), pattern.y.len());
+    println!("Loaded {} points from xrdml", pattern.x.len());
+}
+
+#[test]
+fn test_04_load_xy() {
+    let path = PathBuf::from("tests/data/xy/sample.xy");
+    let start = Instant::now();
+    let pattern = load_file(&path).expect("Failed to load xy file");
+    println!("IO time for xy: {:?}", start.elapsed());
+    assert!(pattern.x.len() > 0);
+    assert_eq!(pattern.x.len(), pattern.y.len());
+    println!("Loaded {} points from xy", pattern.x.len());
+}
+
+#[test]
+fn test_05_load_csv() {
     let path = PathBuf::from("tests/data/csv/sample.csv");
     let start = Instant::now();
     let pattern = load_file(&path).expect("Failed to load csv file");
@@ -54,44 +65,7 @@ fn test_load_csv() {
 }
 
 #[test]
-fn test_load_xrdml() {
-    let path = PathBuf::from("tests/data/xrdml/sample.xrdml");
-    let start = Instant::now();
-    let pattern = load_file(&path).expect("Failed to load xrdml file");
-    println!("IO time for xrdml: {:?}", start.elapsed());
-    assert!(pattern.x.len() > 0);
-    assert_eq!(pattern.x.len(), pattern.y.len());
-    println!("Loaded {} points from xrdml", pattern.x.len());
-}
-
-#[test]
-fn test_load_from_bytes_xy() {
-    let path = PathBuf::from("tests/data/xy/sample.xy");
-    let start = Instant::now();
-    let bytes = read(&path).expect("Failed to read file bytes");
-    println!("IO time (read bytes) for xy: {:?}", start.elapsed());
-    let cursor = Cursor::new(bytes);
-
-    let pattern = load_from_reader(cursor, "sample.xy").expect("Failed to load xy from bytes");
-    assert!(pattern.x.len() > 0);
-    assert_eq!(pattern.x.len(), pattern.y.len());
-}
-
-#[test]
-fn test_load_from_bytes_rasx() {
-    let path = PathBuf::from("tests/data/rasx/sample.rasx");
-    let start = Instant::now();
-    let bytes = read(&path).expect("Failed to read file bytes");
-    println!("IO time (read bytes) for rasx: {:?}", start.elapsed());
-    let cursor = Cursor::new(bytes);
-
-    let pattern = load_from_reader(cursor, "sample.rasx").expect("Failed to load rasx from bytes");
-    assert!(pattern.x.len() > 0);
-    assert_eq!(pattern.x.len(), pattern.y.len());
-}
-
-#[test]
-fn test_load_from_bytes_raw() {
+fn test_06_load_from_bytes_raw() {
     let path = PathBuf::from("tests/data/gsas_raw/sample.raw");
     let start = Instant::now();
     let bytes = read(&path).expect("Failed to read file bytes");
@@ -104,7 +78,47 @@ fn test_load_from_bytes_raw() {
 }
 
 #[test]
-fn test_load_from_bytes_csv() {
+fn test_07_load_from_bytes_rasx() {
+    let path = PathBuf::from("tests/data/rasx/sample.rasx");
+    let start = Instant::now();
+    let bytes = read(&path).expect("Failed to read file bytes");
+    println!("IO time (read bytes) for rasx: {:?}", start.elapsed());
+    let cursor = Cursor::new(bytes);
+
+    let pattern = load_from_reader(cursor, "sample.rasx").expect("Failed to load rasx from bytes");
+    assert!(pattern.x.len() > 0);
+    assert_eq!(pattern.x.len(), pattern.y.len());
+}
+
+#[test]
+fn test_08_load_from_bytes_xrdml() {
+    let path = PathBuf::from("tests/data/xrdml/sample.xrdml");
+    let start = Instant::now();
+    let bytes = read(&path).expect("Failed to read file bytes");
+    println!("IO time (read bytes) for xrdml: {:?}", start.elapsed());
+    let cursor = Cursor::new(bytes);
+
+    let pattern =
+        load_from_reader(cursor, "sample.xrdml").expect("Failed to load xrdml from bytes");
+    assert!(pattern.x.len() > 0);
+    assert_eq!(pattern.x.len(), pattern.y.len());
+}
+
+#[test]
+fn test_09_load_from_bytes_xy() {
+    let path = PathBuf::from("tests/data/xy/sample.xy");
+    let start = Instant::now();
+    let bytes = read(&path).expect("Failed to read file bytes");
+    println!("IO time (read bytes) for xy: {:?}", start.elapsed());
+    let cursor = Cursor::new(bytes);
+
+    let pattern = load_from_reader(cursor, "sample.xy").expect("Failed to load xy from bytes");
+    assert!(pattern.x.len() > 0);
+    assert_eq!(pattern.x.len(), pattern.y.len());
+}
+
+#[test]
+fn test_10_load_from_bytes_csv() {
     let path = PathBuf::from("tests/data/csv/sample.csv");
     let start = Instant::now();
     let bytes = read(&path).expect("Failed to read file bytes");
@@ -119,17 +133,4 @@ fn test_load_from_bytes_csv() {
         .as_ref()
         .map(|v| v.len() == pattern.x.len())
         .unwrap_or(true));
-}
-
-#[test]
-fn test_load_from_bytes_xrdml() {
-    let path = PathBuf::from("tests/data/xrdml/sample.xrdml");
-    let start = Instant::now();
-    let bytes = read(&path).expect("Failed to read file bytes");
-    println!("IO time (read bytes) for xrdml: {:?}", start.elapsed());
-    let cursor = Cursor::new(bytes);
-
-    let pattern = load_from_reader(cursor, "sample.xrdml").expect("Failed to load xrdml from bytes");
-    assert!(pattern.x.len() > 0);
-    assert_eq!(pattern.x.len(), pattern.y.len());
 }
