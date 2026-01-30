@@ -16,10 +16,10 @@ A Rust XRD pattern parser with Python bindings. Supports:
 Load from a file path:
 
 ```rust
-use geddes::load_file;
+use geddes::load_pattern;
 
 fn main() {
-    let pattern = load_file("tests/data/xy/sample.xy").unwrap();
+    let pattern = load_pattern("tests/data/xy/sample.xy").unwrap();
     println!("{} {}", pattern.x.len(), pattern.y.len());
 }
 ```
@@ -30,12 +30,12 @@ Load from in-memory bytes (filename is used to infer the format):
 use std::fs;
 use std::io::Cursor;
 
-use geddes::load_from_reader;
+use geddes::load_pattern_from_reader;
 
 fn main() {
     let data = fs::read("tests/data/xy/sample.xy").unwrap();
     let cursor = Cursor::new(data);
-    let pattern = load_from_reader(cursor, "sample.xy").unwrap();
+    let pattern = load_pattern_from_reader(cursor, "sample.xy").unwrap();
     println!("{} {}", pattern.x.len(), pattern.y.len());
 }
 ```
@@ -49,7 +49,7 @@ Load from a file path:
 ```python
 import geddes
 
-pattern = geddes.load_file("tests/data/xy/sample.xy")
+pattern = geddes.load_pattern("tests/data/xy/sample.xy")
 print(len(pattern.x), len(pattern.y))
 ```
 
@@ -61,7 +61,7 @@ import geddes
 with open("tests/data/xy/sample.xy", "rb") as f:
     data = f.read()
 
-pattern = geddes.load_bytes(data, "sample.xy")
+pattern = geddes.load_pattern_from_bytes(data, "sample.xy")
 print(len(pattern.x), len(pattern.y))
 ```
 
