@@ -11,7 +11,7 @@ mod python;
 
 pub use error::GeddesError;
 use parser::{
-    parse_bruker_raw, parse_gsas_raw, parse_rasx, parse_xrdml, parse_xy, parse_csv, ParsedData,
+    parse_bruker_raw, parse_csv, parse_gsas_raw, parse_rasx, parse_xrdml, parse_xy, ParsedData,
 };
 #[cfg(feature = "python")]
 use pyo3::prelude::*;

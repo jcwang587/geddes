@@ -187,9 +187,9 @@ pub fn parse_xrdml<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
                 _ => {}
             },
             Ok(Event::Text(e)) => {
-                let text = e.decode().map_err(|err| {
-                    GeddesError::Parse(format!("XRDML text decode error: {err}"))
-                })?;
+                let text = e
+                    .decode()
+                    .map_err(|err| GeddesError::Parse(format!("XRDML text decode error: {err}")))?;
                 let text = text.trim();
                 if text.is_empty() {
                     // Skip empty text nodes.
@@ -242,9 +242,7 @@ pub fn parse_xrdml<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
         end_pos.ok_or_else(|| GeddesError::Parse("XRDML missing 2Theta end position".into()))?;
 
     if intensities.is_empty() {
-        return Err(GeddesError::Parse(
-            "XRDML intensities not found".into(),
-        ));
+        return Err(GeddesError::Parse("XRDML intensities not found".into()));
     }
 
     let mut x = Vec::with_capacity(intensities.len());
@@ -331,8 +329,149 @@ pub fn parse_gsas_raw<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
 /// Parses Bruker binary RAW files.
 ///
 /// (Currently a placeholder returning an error)
-pub fn parse_bruker_raw<R: Read>(_reader: R) -> Result<ParsedData, GeddesError> {
-    Err(GeddesError::Parse(
-        "Bruker binary RAW format not yet supported".into(),
-    ))
+pub fn parse_bruker_raw<R: Read>(mut reader: R) -> Result<ParsedData, GeddesError> {
+    let mut buf = Vec::new();
+    reader.read_to_end(&mut buf)?;
+
+    if buf.len() < 32 || !buf.starts_with(b"RAW") {
+        return Err(GeddesError::Parse(
+            "Unsupported Bruker RAW header".into(),
+        ));
+    }
+
+    let (count, count_offset, data_offset) =
+        find_bruker_data_block(&buf).ok_or_else(|| {
+            GeddesError::Parse("Failed to locate Bruker RAW data block".into())
+        })?;
+
+    let (start, step) = find_bruker_start_step(&buf, count_offset, count).ok_or_else(|| {
+        GeddesError::Parse("Failed to locate Bruker RAW start/step metadata".into())
+    })?;
+
+    let count_usize = count as usize;
+    let mut y = Vec::with_capacity(count_usize);
+    for i in 0..count_usize {
+        let off = data_offset + i * 4;
+        let val = read_f32_le(&buf, off).ok_or_else(|| {
+            GeddesError::Parse("Bruker RAW intensity data truncated".into())
+        })?;
+        y.push(val as f64);
+    }
+
+    let mut x = Vec::with_capacity(count_usize);
+    for i in 0..count_usize {
+        x.push(start + step * (i as f64));
+    }
+
+    Ok(ParsedData { x, y, e: None })
+}
+
+fn find_bruker_data_block(buf: &[u8]) -> Option<(u32, usize, usize)> {
+    let len = buf.len();
+    let mut best: Option<(u32, usize, usize)> = None;
+
+    for off in 0..len.saturating_sub(4) {
+        let count = read_u32_le(buf, off)?;
+        if count < 10 || count > 5_000_000 {
+            continue;
+        }
+        let data_len = (count as usize).checked_mul(4)?;
+        if data_len > len {
+            continue;
+        }
+        let data_offset = len - data_len;
+        if data_offset <= off {
+            continue;
+        }
+
+        if !bruker_data_block_plausible(buf, data_offset, count as usize) {
+            continue;
+        }
+
+        match best {
+            Some((best_count, _, _)) if count <= best_count => {}
+            _ => best = Some((count, off, data_offset)),
+        }
+    }
+
+    best
+}
+
+fn bruker_data_block_plausible(buf: &[u8], data_offset: usize, count: usize) -> bool {
+    if count == 0 {
+        return false;
+    }
+    let samples = 16.min(count);
+    for s in 0..samples {
+        let idx = s * (count - 1) / (samples - 1).max(1);
+        let off = data_offset + idx * 4;
+        let val = match read_f32_le(buf, off) {
+            Some(v) => v,
+            None => return false,
+        };
+        if !val.is_finite() || val < 0.0 || val > 1.0e9 {
+            return false;
+        }
+    }
+    true
+}
+
+fn find_bruker_start_step(
+    buf: &[u8],
+    count_offset: usize,
+    count: u32,
+) -> Option<(f64, f64)> {
+    let start_off = count_offset.checked_sub(16)?;
+    let step_off = count_offset.checked_sub(8)?;
+    let start = read_f64_le(buf, start_off)?;
+    let step = read_f64_le(buf, step_off)?;
+
+    if bruker_start_step_valid(start, step, count) {
+        return Some((start, step));
+    }
+
+    // Fallback: scan a small window before the count for a plausible (start, step) pair.
+    let window_start = count_offset.saturating_sub(64);
+    for off in window_start..count_offset {
+        let start = match read_f64_le(buf, off) {
+            Some(v) => v,
+            None => continue,
+        };
+        let step = match read_f64_le(buf, off + 8) {
+            Some(v) => v,
+            None => continue,
+        };
+        if bruker_start_step_valid(start, step, count) {
+            return Some((start, step));
+        }
+    }
+
+    None
+}
+
+fn bruker_start_step_valid(start: f64, step: f64, count: u32) -> bool {
+    if !start.is_finite() || !step.is_finite() || step <= 0.0 || step > 10.0 {
+        return false;
+    }
+    let n = count as f64;
+    let end = start + step * if n > 1.0 { n - 1.0 } else { 0.0 };
+    if !end.is_finite() || end < start {
+        return false;
+    }
+    start >= -180.0 && end <= 360.0
+}
+
+fn read_u32_le(buf: &[u8], offset: usize) -> Option<u32> {
+    let bytes = buf.get(offset..offset + 4)?;
+    Some(u32::from_le_bytes(bytes.try_into().ok()?))
+}
+
+fn read_f32_le(buf: &[u8], offset: usize) -> Option<f32> {
+    let bytes = buf.get(offset..offset + 4)?;
+    Some(f32::from_le_bytes(bytes.try_into().ok()?))
+}
+
+fn read_f64_le(buf: &[u8], offset: usize) -> Option<f64> {
+    let bytes = buf.get(offset..offset + 8)?;
+    Some(f64::from_le_bytes(bytes.try_into().ok()?))
 }
