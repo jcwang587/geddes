@@ -329,8 +329,7 @@ pub fn parse_gsas_raw<R: Read>(reader: R) -> Result<ParsedData, GeddesError> {
 /// Parses Bruker binary RAW files.
 ///
 /// (Currently a placeholder returning an error)
-pub fn parse_bruker_raw<R: Read>(_reader: R) -> Result<ParsedData, GeddesError> {
-    let mut reader = _reader;
+pub fn parse_bruker_raw<R: Read>(mut reader: R) -> Result<ParsedData, GeddesError> {
     let mut buf = Vec::new();
     reader.read_to_end(&mut buf)?;
 
@@ -345,7 +344,9 @@ pub fn parse_bruker_raw<R: Read>(_reader: R) -> Result<ParsedData, GeddesError> 
             GeddesError::Parse("Failed to locate Bruker RAW data block".into())
         })?;
 
-    let (start, step) = find_bruker_start_step(&buf, count_offset, count).unwrap_or((0.0, 1.0));
+    let (start, step) = find_bruker_start_step(&buf, count_offset, count).ok_or_else(|| {
+        GeddesError::Parse("Failed to locate Bruker RAW start/step metadata".into())
+    })?;
 
     let count_usize = count as usize;
     let mut y = Vec::with_capacity(count_usize);
