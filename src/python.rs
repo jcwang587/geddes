@@ -1,4 +1,4 @@
-use crate::{load_pattern, load_pattern_from_reader, Pattern, Error};
+use crate::{read, read_reader, Pattern, Error};
 use pyo3::exceptions::{PyIOError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::PyBytes;
@@ -17,27 +17,27 @@ fn to_py_err(err: Error) -> PyErr {
     }
 }
 
-/// Load a diffraction pattern from a file path.
-#[pyfunction(name = "load_pattern")]
-fn load_pattern_py(path: &str) -> PyResult<Pattern> {
-    load_pattern(path).map_err(to_py_err)
+/// Load a pattern from a file path.
+#[pyfunction(name = "read")]
+fn read_py(path: &str) -> PyResult<Pattern> {
+    read(path).map_err(to_py_err)
 }
 
-/// Load a diffraction pattern from raw bytes with a filename hint.
+/// Load a pattern from raw bytes with a filename hint.
 #[pyfunction]
-fn load_pattern_from_bytes(
+fn read_bytes(
     data: &Bound<'_, PyBytes>,
     filename: &str,
 ) -> PyResult<Pattern> {
     let cursor = Cursor::new(data.as_bytes());
-    load_pattern_from_reader(cursor, filename).map_err(to_py_err)
+    read_reader(cursor, filename).map_err(to_py_err)
 }
 
 /// Python module definition for the `geddes` extension.
 #[pymodule]
 fn geddes(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Pattern>()?;
-    m.add_function(wrap_pyfunction!(load_pattern_py, m)?)?;
-    m.add_function(wrap_pyfunction!(load_pattern_from_bytes, m)?)?;
+    m.add_function(wrap_pyfunction!(read_py, m)?)?;
+    m.add_function(wrap_pyfunction!(read_bytes, m)?)?;
     Ok(())
 }

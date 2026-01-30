@@ -17,7 +17,7 @@ use parser::{
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
-use std::io::{Read, Seek, SeekFrom};
+use std::io::{Cursor, Read, Seek, SeekFrom};
 use std::path::Path;
 
 /// Represents a diffraction pattern with position, intensity, and optional error.
@@ -62,26 +62,26 @@ impl From<ParsedPattern> for Pattern {
     }
 }
 
-/// Load a diffraction pattern from a file path.
+/// Load a pattern from a file path.
 ///
 /// Format is determined automatically by the file extension.
 ///
 /// # Examples
 ///
 /// ```no_run
-/// use geddes::load_pattern;
+/// use geddes::read;
 ///
-/// let pattern = load_pattern("tests/data/xy/sample.xy").expect("Failed to load file");
+/// let pattern = read("tests/data/xy/sample.xy").expect("Failed to load file");
 /// println!("Loaded {} points", pattern.x.len());
 /// ```
-pub fn load_pattern<P: AsRef<Path>>(path: P) -> Result<Pattern, Error> {
+pub fn read<P: AsRef<Path>>(path: P) -> Result<Pattern, Error> {
     let path = path.as_ref();
     let file = File::open(path)?;
     let filename = path.file_name().and_then(|s| s.to_str()).unwrap_or("");
-    load_pattern_from_reader(file, filename)
+    read_reader(file, filename)
 }
 
-/// Load a diffraction pattern from any reader that implements Read + Seek.
+/// Load a pattern from any reader that implements Read + Seek.
 ///
 /// This is useful for loading from bytes (using `Cursor<Vec<u8>>`) or other non-file sources,
 /// which is particularly important for WASM environments.
@@ -95,14 +95,14 @@ pub fn load_pattern<P: AsRef<Path>>(path: P) -> Result<Pattern, Error> {
 ///
 /// ```
 /// use std::io::Cursor;
-/// use geddes::load_pattern_from_reader;
+/// use geddes::read_reader;
 ///
 /// let data = b"10.0 100.0\n10.1 105.0";
 /// let cursor = Cursor::new(data);
-/// let pattern = load_pattern_from_reader(cursor, "data.xy").unwrap();
+/// let pattern = read_reader(cursor, "data.xy").unwrap();
 /// assert_eq!(pattern.x.len(), 2);
 /// ```
-pub fn load_pattern_from_reader<R: Read + Seek>(
+pub fn read_reader<R: Read + Seek>(
     reader: R,
     filename: &str,
 ) -> Result<Pattern, Error> {
@@ -141,4 +141,10 @@ pub fn load_pattern_from_reader<R: Read + Seek>(
     };
 
     Ok(data.into())
+}
+
+/// Load a pattern from in-memory bytes with a filename hint.
+pub fn read_bytes<B: AsRef<[u8]>>(bytes: B, filename: &str) -> Result<Pattern, Error> {
+    let cursor = Cursor::new(bytes.as_ref());
+    read_reader(cursor, filename)
 }
