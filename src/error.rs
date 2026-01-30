@@ -1,10 +1,10 @@
 use std::io;
-use thiserror::Error;
+use thiserror::Error as ThisError;
 
 /// Errors that can occur when loading or parsing data files.
-#[derive(Error, Debug)]
+#[derive(ThisError, Debug)]
 #[non_exhaustive]
-pub enum GeddesError {
+pub enum Error {
     /// An input/output error occurred.
     #[error("IO error: {0}")]
     Io(#[from] io::Error),

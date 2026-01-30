@@ -9,15 +9,15 @@ mod parser;
 #[cfg(feature = "python")]
 mod python;
 
-pub use error::GeddesError;
+pub use error::Error;
 use parser::{
-    parse_bruker_raw, parse_csv, parse_gsas_raw, parse_rasx, parse_xrdml, parse_xy, ParsedData,
+    parse_bruker_raw, parse_csv, parse_gsas_raw, parse_rasx, parse_xrdml, parse_xy, ParsedPattern,
 };
 #[cfg(feature = "python")]
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
-use std::io::{Read, Seek, SeekFrom};
+use std::io::{Cursor, Read, Seek, SeekFrom};
 use std::path::Path;
 
 /// Represents a diffraction pattern with position, intensity, and optional error.
@@ -34,16 +34,16 @@ pub struct Pattern {
 }
 
 impl Pattern {
-    /// Creates a new Pattern, returning an error if lengths are inconsistent.
-    pub fn new(x: Vec<f64>, y: Vec<f64>, e: Option<Vec<f64>>) -> Result<Self, GeddesError> {
+    /// Creates a new diffraction pattern, returning an error if lengths are inconsistent.
+    pub fn new(x: Vec<f64>, y: Vec<f64>, e: Option<Vec<f64>>) -> Result<Self, Error> {
         if x.len() != y.len() {
-            return Err(GeddesError::Parse(
+            return Err(Error::Parse(
                 "x and y must have the same length".into(),
             ));
         }
         if let Some(ref e_vec) = e {
             if e_vec.len() != x.len() {
-                return Err(GeddesError::Parse(
+                return Err(Error::Parse(
                     "e must have the same length as x and y".into(),
                 ));
             }
@@ -52,8 +52,8 @@ impl Pattern {
     }
 }
 
-impl From<ParsedData> for Pattern {
-    fn from(data: ParsedData) -> Self {
+impl From<ParsedPattern> for Pattern {
+    fn from(data: ParsedPattern) -> Self {
         Pattern {
             x: data.x,
             y: data.y,
@@ -69,16 +69,16 @@ impl From<ParsedData> for Pattern {
 /// # Examples
 ///
 /// ```no_run
-/// use geddes::load_file;
+/// use geddes::read;
 ///
-/// let pattern = load_file("tests/data/xy/sample.xy").expect("Failed to load file");
+/// let pattern = read("tests/data/xy/sample.xy").expect("Failed to load file");
 /// println!("Loaded {} points", pattern.x.len());
 /// ```
-pub fn load_file<P: AsRef<Path>>(path: P) -> Result<Pattern, GeddesError> {
+pub fn read<P: AsRef<Path>>(path: P) -> Result<Pattern, Error> {
     let path = path.as_ref();
     let file = File::open(path)?;
     let filename = path.file_name().and_then(|s| s.to_str()).unwrap_or("");
-    load_from_reader(file, filename)
+    read_reader(file, filename)
 }
 
 /// Load a pattern from any reader that implements Read + Seek.
@@ -95,14 +95,17 @@ pub fn load_file<P: AsRef<Path>>(path: P) -> Result<Pattern, GeddesError> {
 ///
 /// ```
 /// use std::io::Cursor;
-/// use geddes::load_from_reader;
+/// use geddes::read_reader;
 ///
 /// let data = b"10.0 100.0\n10.1 105.0";
 /// let cursor = Cursor::new(data);
-/// let pattern = load_from_reader(cursor, "data.xy").unwrap();
+/// let pattern = read_reader(cursor, "data.xy").unwrap();
 /// assert_eq!(pattern.x.len(), 2);
 /// ```
-pub fn load_from_reader<R: Read + Seek>(reader: R, filename: &str) -> Result<Pattern, GeddesError> {
+pub fn read_reader<R: Read + Seek>(
+    reader: R,
+    filename: &str,
+) -> Result<Pattern, Error> {
     let ext = Path::new(filename)
         .extension()
         .and_then(|s| s.to_str())
@@ -134,8 +137,14 @@ pub fn load_from_reader<R: Read + Seek>(reader: R, filename: &str) -> Result<Pat
         "xrdml" => parse_xrdml(reader)?,
         "xy" | "xye" => parse_xy(reader)?,
         "csv" => parse_csv(reader)?,
-        _ => return Err(GeddesError::UnknownFormat),
+        _ => return Err(Error::UnknownFormat),
     };
 
     Ok(data.into())
+}
+
+/// Load a pattern from in-memory bytes with a filename hint.
+pub fn read_bytes<B: AsRef<[u8]>>(bytes: B, filename: &str) -> Result<Pattern, Error> {
+    let cursor = Cursor::new(bytes.as_ref());
+    read_reader(cursor, filename)
 }
