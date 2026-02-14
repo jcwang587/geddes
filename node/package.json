@@ -42,17 +42,5 @@
   },
   "devDependencies": {
     "@napi-rs/cli": "^3.5.1"
-  },
-  "optionalDependencies": {
-    "@jcwang587/geddes-win32-x64-msvc": "0.1.7-alpha",
-    "@jcwang587/geddes-win32-ia32-msvc": "0.1.7-alpha",
-    "@jcwang587/geddes-win32-arm64-msvc": "0.1.7-alpha",
-    "@jcwang587/geddes-darwin-x64": "0.1.7-alpha",
-    "@jcwang587/geddes-darwin-arm64": "0.1.7-alpha",
-    "@jcwang587/geddes-linux-x64-gnu": "0.1.7-alpha",
-    "@jcwang587/geddes-linux-x64-musl": "0.1.7-alpha",
-    "@jcwang587/geddes-linux-arm64-gnu": "0.1.7-alpha",
-    "@jcwang587/geddes-linux-arm64-musl": "0.1.7-alpha",
-    "@jcwang587/geddes-linux-arm-gnueabihf": "0.1.7-alpha"
   }
 }
