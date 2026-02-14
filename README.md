@@ -11,7 +11,7 @@ A Rust XRD pattern parser with Python bindings. Supports:
 - `.xy` / `.xye` (Space-separated ASCII)
 - `.csv` (Comma-separated values)
 
-## Usage
+## Rust Usage
 
 Load from a file path:
 
