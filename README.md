@@ -68,7 +68,7 @@ Load from a file path:
 ```javascript
 const geddes = require('@jcwang587/geddes')
 
-const pattern = geddes.read('../tests/data/xy/sample.xy')
+const pattern = geddes.read('tests/data/xy/sample.xy')
 console.log(pattern.x.length, pattern.y.length)
 ```
 
@@ -78,7 +78,7 @@ Load from in-memory bytes (filename is used to infer the format):
 const fs = require('node:fs')
 const geddes = require('@jcwang587/geddes')
 
-const bytes = fs.readFileSync('../tests/data/xy/sample.xy')
+const bytes = fs.readFileSync('tests/data/xy/sample.xy')
 const pattern = geddes.readBytes(bytes, 'sample.xy')
 console.log(pattern.x.length, pattern.y.length)
 ```

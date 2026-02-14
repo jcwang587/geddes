@@ -7,5 +7,3 @@ node/node_modules/
 node/npm/
 node/artifacts/
 node/*.node
-node/index.js
-node/index.d.ts
