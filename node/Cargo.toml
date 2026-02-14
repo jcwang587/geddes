@@ -1,0 +1,21 @@
+[package]
+name = "geddes-node"
+version = "0.1.6"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+geddes = { path = ".." }
+napi = { version = "3", features = ["napi8"] }
+napi-derive = "3"
+
+[build-dependencies]
+napi-build = "2"
+
+[profile.release]
+lto = true
+strip = "symbols"
