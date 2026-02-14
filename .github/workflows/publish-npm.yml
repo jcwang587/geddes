@@ -49,9 +49,6 @@ jobs:
           - host: ubuntu-latest
             target: aarch64-unknown-linux-musl
             build: npm run build -- --target aarch64-unknown-linux-musl -x
-          - host: ubuntu-latest
-            target: armv7-unknown-linux-gnueabihf
-            build: npm run build -- --target armv7-unknown-linux-gnueabihf --use-napi-cross
 
     steps:
       - name: Checkout code
