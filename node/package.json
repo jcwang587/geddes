@@ -1,0 +1,58 @@
+{
+  "name": "@jcwang587/geddes",
+  "version": "0.1.7-alpha",
+  "description": "Node.js bindings for geddes (Rust XRD parser)",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "*.node"
+  ],
+  "napi": {
+    "binaryName": "geddes",
+    "targets": [
+      "x86_64-pc-windows-msvc",
+      "i686-pc-windows-msvc",
+      "aarch64-pc-windows-msvc",
+      "x86_64-apple-darwin",
+      "aarch64-apple-darwin",
+      "x86_64-unknown-linux-gnu",
+      "x86_64-unknown-linux-musl",
+      "aarch64-unknown-linux-gnu",
+      "aarch64-unknown-linux-musl",
+      "armv7-unknown-linux-gnueabihf"
+    ]
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "sync:version": "node ./scripts/sync-version.mjs",
+    "artifacts": "napi create-npm-dirs && napi artifacts --output-dir .",
+    "build": "npm run sync:version && napi build --platform --release",
+    "build:debug": "npm run sync:version && napi build --platform",
+    "prepublishOnly": "npm run sync:version && napi prepublish -t npm",
+    "prepublish:dry": "npm run sync:version && napi prepublish -t npm --dry-run",
+    "version": "npm run sync:version && napi version"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3.5.1"
+  },
+  "optionalDependencies": {
+    "@jcwang587/geddes-win32-x64-msvc": "0.1.7-alpha",
+    "@jcwang587/geddes-win32-ia32-msvc": "0.1.7-alpha",
+    "@jcwang587/geddes-win32-arm64-msvc": "0.1.7-alpha",
+    "@jcwang587/geddes-darwin-x64": "0.1.7-alpha",
+    "@jcwang587/geddes-darwin-arm64": "0.1.7-alpha",
+    "@jcwang587/geddes-linux-x64-gnu": "0.1.7-alpha",
+    "@jcwang587/geddes-linux-x64-musl": "0.1.7-alpha",
+    "@jcwang587/geddes-linux-arm64-gnu": "0.1.7-alpha",
+    "@jcwang587/geddes-linux-arm64-musl": "0.1.7-alpha",
+    "@jcwang587/geddes-linux-arm-gnueabihf": "0.1.7-alpha"
+  }
+}

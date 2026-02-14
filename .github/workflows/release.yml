@@ -1,0 +1,53 @@
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  create-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Validate input version matches Cargo.toml
+        id: validate
+        run: |
+          INPUT_VERSION="${{ inputs.version }}"
+          RELEASE_VERSION="${INPUT_VERSION#v}"
+          CARGO_VERSION="$(grep -m1 '^version = ' Cargo.toml | sed -E 's/version = "([^"]+)"/\1/')"
+
+          if [ "$RELEASE_VERSION" != "$CARGO_VERSION" ]; then
+            echo "Input version ($RELEASE_VERSION) does not match Cargo.toml version ($CARGO_VERSION)."
+            exit 1
+          fi
+
+          echo "release_version=$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "release_tag=v$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure tag does not already exist
+        run: |
+          TAG="${{ steps.validate.outputs.release_tag }}"
+          git fetch --tags origin
+          if git ls-remote --tags origin "refs/tags/$TAG" | grep -q "$TAG"; then
+            echo "Tag $TAG already exists on origin."
+            exit 1
+          fi
+
+      - name: Create and push release tag
+        run: |
+          TAG="${{ steps.validate.outputs.release_tag }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "release $TAG"
+          git push origin "$TAG"

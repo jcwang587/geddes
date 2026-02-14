@@ -1,4 +1,9 @@
 /target
 .venv/
-scripts/
+/scripts/
 __pycache__/
+node/target/
+node/node_modules/
+node/npm/
+node/artifacts/
+node/*.node

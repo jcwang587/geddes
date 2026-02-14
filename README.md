@@ -4,14 +4,14 @@
 [![PyPI](https://img.shields.io/pypi/v/geddes)](https://pypi.org/project/geddes/)
 
 
-A Rust XRD pattern parser with Python bindings. Supports:
+A Rust XRD pattern parser with Python and Node.js bindings. Supports:
 - `.raw` (GSAS text or Bruker binary)
 - `.rasx` (Rigaku Zip archive)
 - `.xrdml` (Panalytical XML)
 - `.xy` / `.xye` (Space-separated ASCII)
 - `.csv` (Comma-separated values)
 
-## Usage
+## Rust Usage
 
 Load from a file path:
 
@@ -40,8 +40,6 @@ fn main() {
 
 ## Python Usage
 
-This crate ships Python bindings via `pyo3`/`maturin`.
-
 Load from a file path:
 
 ```python
@@ -61,6 +59,28 @@ with open("tests/data/xy/sample.xy", "rb") as f:
 
 pattern = geddes.read_bytes(data, "sample.xy")
 print(len(pattern.x), len(pattern.y))
+```
+
+## Node.js Usage
+
+Load from a file path:
+
+```javascript
+const geddes = require('@jcwang587/geddes')
+
+const pattern = geddes.read('tests/data/xy/sample.xy')
+console.log(pattern.x.length, pattern.y.length)
+```
+
+Load from in-memory bytes (filename is used to infer the format):
+
+```javascript
+const fs = require('node:fs')
+const geddes = require('@jcwang587/geddes')
+
+const bytes = fs.readFileSync('tests/data/xy/sample.xy')
+const pattern = geddes.readBytes(bytes, 'sample.xy')
+console.log(pattern.x.length, pattern.y.length)
 ```
 
 ## License
