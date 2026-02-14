@@ -163,11 +163,12 @@ jobs:
         run: npx napi prepublish -t npm
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
           NPM_CONFIG_TAG: ${{ steps.dist_tag.outputs.tag }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish JS package
         working-directory: node
-        run: npm publish --provenance --access public --tag "${{ steps.dist_tag.outputs.tag }}"
+        run: npm publish --ignore-scripts --provenance --access public --tag "${{ steps.dist_tag.outputs.tag }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
