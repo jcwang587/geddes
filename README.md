@@ -4,7 +4,7 @@
 [![PyPI](https://img.shields.io/pypi/v/geddes)](https://pypi.org/project/geddes/)
 
 
-A Rust XRD pattern parser with Python bindings. Supports:
+A Rust XRD pattern parser with Python and Node.js bindings. Supports:
 - `.raw` (GSAS text or Bruker binary)
 - `.rasx` (Rigaku Zip archive)
 - `.xrdml` (Panalytical XML)
