@@ -126,6 +126,19 @@ jobs:
         working-directory: node
         run: npm run sync:version
 
+      - name: Determine npm dist-tag
+        id: dist_tag
+        working-directory: node
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          if [[ "$VERSION" == *-* ]]; then
+            TAG="next"
+          else
+            TAG="latest"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Using npm dist-tag '$TAG' for version '$VERSION'"
+
       - name: Create npm target directories
         working-directory: node
         run: npx napi create-npm-dirs
@@ -148,9 +161,10 @@ jobs:
       - name: Prepublish native packages
         working-directory: node
         run: npx napi prepublish -t npm
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          NPM_CONFIG_TAG: ${{ steps.dist_tag.outputs.tag }}
 
       - name: Publish JS package
         working-directory: node
-        run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public --tag "${{ steps.dist_tag.outputs.tag }}"
