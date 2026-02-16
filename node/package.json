@@ -35,6 +35,7 @@
   },
   "scripts": {
     "sync:version": "node ./scripts/sync-version.mjs",
+    "prepare:release": "cargo check --manifest-path ../Cargo.toml && npm run sync:version",
     "artifacts": "napi create-npm-dirs && napi artifacts --output-dir .",
     "build": "npm run sync:version && napi build --platform --release",
     "build:debug": "npm run sync:version && napi build --platform",
