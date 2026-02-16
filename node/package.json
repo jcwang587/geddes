@@ -1,6 +1,6 @@
 {
   "name": "@jcwang587/geddes",
-  "version": "0.1.7-alpha",
+  "version": "0.1.7-beta",
   "description": "Node.js bindings for geddes (Rust XRD parser)",
   "main": "index.js",
   "types": "index.d.ts",
@@ -11,8 +11,7 @@
   "license": "MIT",
   "files": [
     "index.js",
-    "index.d.ts",
-    "*.node"
+    "index.d.ts"
   ],
   "napi": {
     "binaryName": "geddes",
@@ -25,8 +24,7 @@
       "x86_64-unknown-linux-gnu",
       "x86_64-unknown-linux-musl",
       "aarch64-unknown-linux-gnu",
-      "aarch64-unknown-linux-musl",
-      "armv7-unknown-linux-gnueabihf"
+      "aarch64-unknown-linux-musl"
     ]
   },
   "engines": {

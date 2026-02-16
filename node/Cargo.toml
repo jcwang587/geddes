@@ -1,6 +1,6 @@
 [package]
 name = "geddes-node"
-version = "0.1.7-alpha"
+version = "0.1.7-beta"
 edition = "2021"
 license = "MIT"
 publish = false
