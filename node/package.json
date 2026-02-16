@@ -1,6 +1,6 @@
 {
   "name": "@jcwang587/geddes",
-  "version": "0.1.7-beta",
+  "version": "0.1.7",
   "description": "Node.js bindings for geddes (Rust XRD parser)",
   "main": "index.js",
   "types": "index.d.ts",
@@ -35,7 +35,7 @@
   },
   "scripts": {
     "sync:version": "node ./scripts/sync-version.mjs",
-    "prepare:release": "cargo check --manifest-path ../Cargo.toml && npm run sync:version",
+    "prepare:release": "cargo check --manifest-path ../Cargo.toml && cargo check --manifest-path ./Cargo.toml && npm run sync:version",
     "artifacts": "napi create-npm-dirs && napi artifacts --output-dir .",
     "build": "npm run sync:version && napi build --platform --release",
     "build:debug": "npm run sync:version && napi build --platform",
