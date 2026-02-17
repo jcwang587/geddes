@@ -329,6 +329,10 @@ pub fn parse_gsas_raw<R: Read>(reader: R) -> Result<ParsedPattern, Error> {
 /// Parses Bruker binary RAW files.
 ///
 /// Uses heuristics to locate the intensity block and axis metadata.
+///
+/// Bruker RAW4 files are not fully documented and may store intensity points
+/// either as contiguous `f32` values or as interleaved records near the file
+/// tail (e.g. `f32 value` + `u32 status`).
 pub fn parse_bruker_raw<R: Read>(mut reader: R) -> Result<ParsedPattern, Error> {
     let mut buf = Vec::new();
     reader.read_to_end(&mut buf)?;
@@ -339,19 +343,14 @@ pub fn parse_bruker_raw<R: Read>(mut reader: R) -> Result<ParsedPattern, Error> 
         ));
     }
 
-    let (count, count_offset, data_offset) =
-        find_bruker_data_block(&buf).ok_or_else(|| {
-            Error::Parse("Failed to locate Bruker RAW data block".into())
-        })?;
-
-    let (start, step) = find_bruker_start_step(&buf, count_offset, count).ok_or_else(|| {
-        Error::Parse("Failed to locate Bruker RAW start/step metadata".into())
-    })?;
+    let layout = find_bruker_data_layout(&buf)
+        .ok_or_else(|| Error::Parse("Failed to locate Bruker RAW data block".into()))?;
+    let count = layout.count;
 
     let count_usize = count as usize;
     let mut y = Vec::with_capacity(count_usize);
     for i in 0..count_usize {
-        let off = data_offset + i * 4;
+        let off = layout.data_offset + i * layout.stride + layout.value_offset;
         let val = read_f32_le(&buf, off).ok_or_else(|| {
             Error::Parse("Bruker RAW intensity data truncated".into())
         })?;
@@ -359,16 +358,38 @@ pub fn parse_bruker_raw<R: Read>(mut reader: R) -> Result<ParsedPattern, Error> 
     }
 
     let mut x = Vec::with_capacity(count_usize);
-    for i in 0..count_usize {
-        x.push(start + step * (i as f64));
+    let count_offsets = find_bruker_count_offsets(&buf, count, layout.data_offset);
+    if let Some((start, step)) = find_bruker_start_step(&buf, &count_offsets, count) {
+        for i in 0..count_usize {
+            x.push(start + step * (i as f64));
+        }
+    } else {
+        // Some RAW4 variants do not expose a robust local start/step pair.
+        // In that case we still return usable intensity points with index x.
+        for i in 0..count_usize {
+            x.push(i as f64);
+        }
     }
 
     Ok(ParsedPattern { x, y, e: None })
 }
 
-fn find_bruker_data_block(buf: &[u8]) -> Option<(u32, usize, usize)> {
+#[derive(Debug, Clone, Copy)]
+struct BrukerDataLayout {
+    count: u32,
+    data_offset: usize,
+    stride: usize,
+    value_offset: usize,
+}
+
+fn find_bruker_data_layout(buf: &[u8]) -> Option<BrukerDataLayout> {
+    find_bruker_interleaved_tail_block(buf)
+        .or_else(|| find_bruker_plain_f32_tail_block(buf))
+}
+
+fn find_bruker_plain_f32_tail_block(buf: &[u8]) -> Option<BrukerDataLayout> {
     let len = buf.len();
-    let mut best: Option<(u32, usize, usize)> = None;
+    let mut best: Option<BrukerDataLayout> = None;
 
     for off in 0..len.saturating_sub(4) {
         let count = read_u32_le(buf, off)?;
@@ -384,73 +405,189 @@ fn find_bruker_data_block(buf: &[u8]) -> Option<(u32, usize, usize)> {
             continue;
         }
 
-        if !bruker_data_block_plausible(buf, data_offset, count as usize) {
+        let layout = BrukerDataLayout {
+            count,
+            data_offset,
+            stride: 4,
+            value_offset: 0,
+        };
+        if !bruker_data_layout_plausible(buf, layout) {
             continue;
         }
 
         match best {
-            Some((best_count, _, _)) if count <= best_count => {}
-            _ => best = Some((count, off, data_offset)),
+            Some(best_layout) if count <= best_layout.count => {}
+            _ => best = Some(layout),
         }
     }
 
     best
 }
 
-fn bruker_data_block_plausible(buf: &[u8], data_offset: usize, count: usize) -> bool {
+fn find_bruker_interleaved_tail_block(buf: &[u8]) -> Option<BrukerDataLayout> {
+    const MIN_POINTS: usize = 32;
+    const FLAG_MAX: u32 = 3;
+
+    let len = buf.len();
+    let mut best: Option<BrukerDataLayout> = None;
+
+    for value_offset in [0usize, 4usize] {
+        let companion_offset = if value_offset == 0 { 4usize } else { 0usize };
+        let mut run = 0usize;
+
+        while len >= (run + 1) * 8 {
+            let rec_off = len - (run + 1) * 8;
+            let flag = match read_u32_le(buf, rec_off + companion_offset) {
+                Some(v) => v,
+                None => break,
+            };
+            if flag > FLAG_MAX {
+                break;
+            }
+            let val = match read_f32_le(buf, rec_off + value_offset) {
+                Some(v) => v,
+                None => break,
+            };
+            if !val.is_finite() || val.abs() > 1.0e9 {
+                break;
+            }
+            run += 1;
+        }
+
+        if run < MIN_POINTS {
+            continue;
+        }
+
+        let candidate = BrukerDataLayout {
+            count: run as u32,
+            data_offset: len - run * 8,
+            stride: 8,
+            value_offset,
+        };
+        if !bruker_data_layout_plausible(buf, candidate) {
+            continue;
+        }
+
+        match best {
+            Some(current) if candidate.count <= current.count => {}
+            _ => best = Some(candidate),
+        }
+    }
+
+    best
+}
+
+fn bruker_data_layout_plausible(buf: &[u8], layout: BrukerDataLayout) -> bool {
+    let count = layout.count as usize;
     if count == 0 {
         return false;
     }
-    let samples = 16.min(count);
+    let samples = 64.min(count);
+    let marker_value = f32::from_bits(1);
+    let mut marker_like = 0usize;
+    let mut near_zero = 0usize;
+    let mut min_val = f32::INFINITY;
+    let mut max_val = f32::NEG_INFINITY;
+
     for s in 0..samples {
         let idx = s * (count - 1) / (samples - 1).max(1);
-        let off = data_offset + idx * 4;
+        let off = layout.data_offset + idx * layout.stride + layout.value_offset;
         let val = match read_f32_le(buf, off) {
             Some(v) => v,
             None => return false,
         };
-        if !val.is_finite() || val < 0.0 || val > 1.0e9 {
+        if !val.is_finite() || val.abs() > 1.0e9 {
             return false;
         }
+        if val == marker_value {
+            marker_like += 1;
+        }
+        if val.abs() < 1.0e-30 {
+            near_zero += 1;
+        }
+        min_val = min_val.min(val);
+        max_val = max_val.max(val);
+    }
+
+    // Reject obvious marker-word streams (e.g. interleaved status words
+    // accidentally interpreted as intensity values).
+    if marker_like * 4 > samples {
+        return false;
+    }
+    if near_zero * 3 > samples {
+        return false;
+    }
+    if (max_val - min_val).abs() < 1.0e-6 {
+        return false;
     }
     true
 }
 
+fn find_bruker_count_offsets(buf: &[u8], count: u32, search_end: usize) -> Vec<usize> {
+    if search_end < 4 {
+        return Vec::new();
+    }
+    let end = search_end.min(buf.len().saturating_sub(4));
+    let mut offsets = Vec::new();
+
+    for off in 0..=end {
+        if read_u32_le(buf, off) == Some(count) {
+            offsets.push(off);
+        }
+    }
+    offsets
+}
+
 fn find_bruker_start_step(
     buf: &[u8],
-    count_offset: usize,
+    count_offsets: &[usize],
     count: u32,
 ) -> Option<(f64, f64)> {
-    let start_off = count_offset.checked_sub(16)?;
-    let step_off = count_offset.checked_sub(8)?;
-    let start = read_f64_le(buf, start_off)?;
-    let step = read_f64_le(buf, step_off)?;
+    let mut best: Option<(f64, f64, f64)> = None;
 
-    if bruker_start_step_valid(start, step, count) {
-        return Some((start, step));
-    }
+    for &count_offset in count_offsets {
+        if let Some(start_off) = count_offset.checked_sub(16) {
+            if let (Some(start), Some(step)) =
+                (read_f64_le(buf, start_off), read_f64_le(buf, start_off + 8))
+            {
+                if bruker_start_step_valid(start, step, count) {
+                    let score = score_bruker_start_step(start, step, count) + 1000.0;
+                    match best {
+                        Some((_, _, best_score)) if score <= best_score => {}
+                        _ => best = Some((start, step, score)),
+                    }
+                }
+            }
+        }
 
-    // Fallback: scan a small window before the count for a plausible (start, step) pair.
-    let window_start = count_offset.saturating_sub(64);
-    for off in window_start..count_offset {
-        let start = match read_f64_le(buf, off) {
-            Some(v) => v,
-            None => continue,
-        };
-        let step = match read_f64_le(buf, off + 8) {
-            Some(v) => v,
-            None => continue,
-        };
-        if bruker_start_step_valid(start, step, count) {
-            return Some((start, step));
+        // Fallback: scan a small window before the count for a plausible
+        // (start, step) pair.
+        let window_start = count_offset.saturating_sub(64);
+        for off in window_start..count_offset {
+            let start = match read_f64_le(buf, off) {
+                Some(v) => v,
+                None => continue,
+            };
+            let step = match read_f64_le(buf, off + 8) {
+                Some(v) => v,
+                None => continue,
+            };
+            if !bruker_start_step_valid(start, step, count) {
+                continue;
+            }
+            let score = score_bruker_start_step(start, step, count);
+            match best {
+                Some((_, _, best_score)) if score <= best_score => {}
+                _ => best = Some((start, step, score)),
+            }
         }
     }
 
-    None
+    best.map(|(start, step, _)| (start, step))
 }
 
 fn bruker_start_step_valid(start: f64, step: f64, count: u32) -> bool {
-    if !start.is_finite() || !step.is_finite() || step <= 0.0 || step > 10.0 {
+    if !start.is_finite() || !step.is_finite() || step <= 1.0e-6 || step > 10.0 {
         return false;
     }
     let n = count as f64;
@@ -459,6 +596,18 @@ fn bruker_start_step_valid(start: f64, step: f64, count: u32) -> bool {
         return false;
     }
     start >= -180.0 && end <= 360.0
+}
+
+fn score_bruker_start_step(start: f64, step: f64, count: u32) -> f64 {
+    let span = step * ((count as f64 - 1.0).max(0.0));
+    let mut score = span.min(360.0);
+    if (0.0..=180.0).contains(&start) {
+        score += 50.0;
+    }
+    if (1.0e-4..=0.5).contains(&step) {
+        score += 25.0;
+    }
+    score
 }
 
 fn read_u32_le(buf: &[u8], offset: usize) -> Option<u32> {
