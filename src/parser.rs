@@ -416,9 +416,6 @@ fn find_bruker_plain_f32_tail_block(buf: &[u8]) -> Option<BrukerDataLayout> {
             stride: 4,
             value_offset: 0,
         };
-        if !bruker_data_layout_plausible(buf, layout) {
-            continue;
-        }
 
         match best {
             Some(best_layout) if count <= best_layout.count => {}
@@ -469,9 +466,6 @@ fn find_bruker_interleaved_tail_block(buf: &[u8]) -> Option<BrukerDataLayout> {
             stride: 8,
             value_offset,
         };
-        if !bruker_data_layout_plausible(buf, candidate) {
-            continue;
-        }
 
         match best {
             Some(current) if candidate.count <= current.count => {}
@@ -480,52 +474,6 @@ fn find_bruker_interleaved_tail_block(buf: &[u8]) -> Option<BrukerDataLayout> {
     }
 
     best
-}
-
-fn bruker_data_layout_plausible(buf: &[u8], layout: BrukerDataLayout) -> bool {
-    let count = layout.count as usize;
-    if count == 0 {
-        return false;
-    }
-    let samples = 64.min(count);
-    let marker_value = f32::from_bits(1);
-    let mut marker_like = 0usize;
-    let mut near_zero = 0usize;
-    let mut min_val = f32::INFINITY;
-    let mut max_val = f32::NEG_INFINITY;
-
-    for s in 0..samples {
-        let idx = s * (count - 1) / (samples - 1).max(1);
-        let off = layout.data_offset + idx * layout.stride + layout.value_offset;
-        let val = match read_f32_le(buf, off) {
-            Some(v) => v,
-            None => return false,
-        };
-        if !val.is_finite() || val.abs() > 1.0e9 {
-            return false;
-        }
-        if val == marker_value {
-            marker_like += 1;
-        }
-        if val.abs() < 1.0e-30 {
-            near_zero += 1;
-        }
-        min_val = min_val.min(val);
-        max_val = max_val.max(val);
-    }
-
-    // Reject obvious marker-word streams (e.g. interleaved status words
-    // accidentally interpreted as intensity values).
-    if marker_like * 4 > samples {
-        return false;
-    }
-    if near_zero * 3 > samples {
-        return false;
-    }
-    if (max_val - min_val).abs() < 1.0e-6 {
-        return false;
-    }
-    true
 }
 
 fn find_bruker_count_offsets(buf: &[u8], count: u32, search_end: usize) -> Vec<usize> {
