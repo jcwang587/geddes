@@ -343,7 +343,7 @@ pub fn parse_bruker_raw<R: Read>(mut reader: R) -> Result<ParsedPattern, Error> 
         ));
     }
 
-    let mut selected: Option<(BrukerDataLayout, f64, f64)> = None;
+    let mut selected: Option<(BrukerDataLayout, f64, f64, f64)> = None;
     for layout in [
         find_bruker_interleaved_tail_block(&buf),
         find_bruker_plain_f32_tail_block(&buf),
@@ -353,12 +353,15 @@ pub fn parse_bruker_raw<R: Read>(mut reader: R) -> Result<ParsedPattern, Error> 
     {
         let count_offsets = find_bruker_count_offsets(&buf, layout.count, layout.data_offset);
         if let Some((start, step)) = find_bruker_start_step(&buf, &count_offsets, layout.count) {
-            selected = Some((layout, start, step));
-            break;
+            let score = score_bruker_start_step(start, step, layout.count);
+            match selected {
+                Some((_, _, _, best_score)) if score <= best_score => {}
+                _ => selected = Some((layout, start, step, score)),
+            }
         }
     }
 
-    let (layout, start, step) = selected.ok_or_else(|| {
+    let (layout, start, step, _) = selected.ok_or_else(|| {
         Error::Parse("Failed to locate Bruker RAW start/step metadata".into())
     })?;
     let count = layout.count;
