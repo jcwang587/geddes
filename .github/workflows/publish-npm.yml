@@ -26,9 +26,6 @@ jobs:
             target: x86_64-pc-windows-msvc
             build: npm run build -- --target x86_64-pc-windows-msvc
           - host: windows-latest
-            target: i686-pc-windows-msvc
-            build: npm run build -- --target i686-pc-windows-msvc
-          - host: windows-latest
             target: aarch64-pc-windows-msvc
             build: npm run build -- --target aarch64-pc-windows-msvc
           - host: macos-latest
@@ -41,14 +38,8 @@ jobs:
             target: x86_64-unknown-linux-gnu
             build: npm run build -- --target x86_64-unknown-linux-gnu --use-napi-cross
           - host: ubuntu-latest
-            target: x86_64-unknown-linux-musl
-            build: npm run build -- --target x86_64-unknown-linux-musl -x
-          - host: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             build: npm run build -- --target aarch64-unknown-linux-gnu --use-napi-cross
-          - host: ubuntu-latest
-            target: aarch64-unknown-linux-musl
-            build: npm run build -- --target aarch64-unknown-linux-musl -x
 
     steps:
       - name: Checkout code
@@ -65,18 +56,6 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
-
-      - name: Setup Zig
-        if: ${{ contains(matrix.target, 'musl') }}
-        uses: mlugg/setup-zig@v2
-        with:
-          version: 0.14.1
-
-      - name: Install cargo-zigbuild
-        if: ${{ contains(matrix.target, 'musl') }}
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-zigbuild
 
       - name: Install Node dependencies
         working-directory: node
