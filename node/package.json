@@ -1,6 +1,6 @@
 {
   "name": "@jcwang587/geddes",
-  "version": "0.1.7",
+  "version": "0.2.0-alpha",
   "description": "Node.js bindings for geddes (Rust XRD parser)",
   "main": "index.js",
   "types": "index.d.ts",
