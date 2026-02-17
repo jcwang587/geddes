@@ -170,21 +170,12 @@ fn test_13_bruker_raw_axis_span_is_physical() {
 }
 
 #[test]
-fn test_14_bruker_raw_scrambled_does_not_include_marker_words() {
+fn test_14_bruker_raw_scrambled_rejects_unknown_axis_metadata() {
     let path = PathBuf::from("tests/data/bruker_raw/TwoTheta_scan_scrambled.raw");
-    let pattern = read(&path).expect("Failed to load scrambled Bruker raw file");
-    assert_eq!(pattern.x.len(), pattern.y.len());
-    assert!(pattern.x.len() > 100);
-
-    let marker = f32::from_bits(1) as f64;
-    let marker_like = pattern
-        .y
-        .iter()
-        .filter(|&&v| (v - marker).abs() < 1.0e-50)
-        .count();
+    let err = read(&path).expect_err("Expected unsupported Bruker variant to error");
+    let msg = err.to_string();
     assert!(
-        marker_like * 10 < pattern.y.len(),
-        "Too many marker-like words leaked into intensity stream: {marker_like}/{}",
-        pattern.y.len()
+        msg.contains("start/step metadata"),
+        "Unexpected error: {msg}"
     );
 }

@@ -343,8 +343,24 @@ pub fn parse_bruker_raw<R: Read>(mut reader: R) -> Result<ParsedPattern, Error> 
         ));
     }
 
-    let layout = find_bruker_data_layout(&buf)
-        .ok_or_else(|| Error::Parse("Failed to locate Bruker RAW data block".into()))?;
+    let mut selected: Option<(BrukerDataLayout, f64, f64)> = None;
+    for layout in [
+        find_bruker_interleaved_tail_block(&buf),
+        find_bruker_plain_f32_tail_block(&buf),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        let count_offsets = find_bruker_count_offsets(&buf, layout.count, layout.data_offset);
+        if let Some((start, step)) = find_bruker_start_step(&buf, &count_offsets, layout.count) {
+            selected = Some((layout, start, step));
+            break;
+        }
+    }
+
+    let (layout, start, step) = selected.ok_or_else(|| {
+        Error::Parse("Failed to locate Bruker RAW start/step metadata".into())
+    })?;
     let count = layout.count;
 
     let count_usize = count as usize;
@@ -358,17 +374,8 @@ pub fn parse_bruker_raw<R: Read>(mut reader: R) -> Result<ParsedPattern, Error> 
     }
 
     let mut x = Vec::with_capacity(count_usize);
-    let count_offsets = find_bruker_count_offsets(&buf, count, layout.data_offset);
-    if let Some((start, step)) = find_bruker_start_step(&buf, &count_offsets, count) {
-        for i in 0..count_usize {
-            x.push(start + step * (i as f64));
-        }
-    } else {
-        // Some RAW4 variants do not expose a robust local start/step pair.
-        // In that case we still return usable intensity points with index x.
-        for i in 0..count_usize {
-            x.push(i as f64);
-        }
+    for i in 0..count_usize {
+        x.push(start + step * (i as f64));
     }
 
     Ok(ParsedPattern { x, y, e: None })
@@ -380,11 +387,6 @@ struct BrukerDataLayout {
     data_offset: usize,
     stride: usize,
     value_offset: usize,
-}
-
-fn find_bruker_data_layout(buf: &[u8]) -> Option<BrukerDataLayout> {
-    find_bruker_interleaved_tail_block(buf)
-        .or_else(|| find_bruker_plain_f32_tail_block(buf))
 }
 
 fn find_bruker_plain_f32_tail_block(buf: &[u8]) -> Option<BrukerDataLayout> {
@@ -551,34 +553,12 @@ fn find_bruker_start_step(
                 (read_f64_le(buf, start_off), read_f64_le(buf, start_off + 8))
             {
                 if bruker_start_step_valid(start, step, count) {
-                    let score = score_bruker_start_step(start, step, count) + 1000.0;
+                    let score = score_bruker_start_step(start, step, count);
                     match best {
                         Some((_, _, best_score)) if score <= best_score => {}
                         _ => best = Some((start, step, score)),
                     }
                 }
-            }
-        }
-
-        // Fallback: scan a small window before the count for a plausible
-        // (start, step) pair.
-        let window_start = count_offset.saturating_sub(64);
-        for off in window_start..count_offset {
-            let start = match read_f64_le(buf, off) {
-                Some(v) => v,
-                None => continue,
-            };
-            let step = match read_f64_le(buf, off + 8) {
-                Some(v) => v,
-                None => continue,
-            };
-            if !bruker_start_step_valid(start, step, count) {
-                continue;
-            }
-            let score = score_bruker_start_step(start, step, count);
-            match best {
-                Some((_, _, best_score)) if score <= best_score => {}
-                _ => best = Some((start, step, score)),
             }
         }
     }
