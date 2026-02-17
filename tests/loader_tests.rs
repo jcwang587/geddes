@@ -5,7 +5,7 @@ use std::time::Instant;
 
 #[test]
 fn test_01_read_gsas_raw() {
-    let path = PathBuf::from("tests/data/gsas_raw/sample.raw");
+    let path = PathBuf::from("tests/data/gsas_raw/gsas.raw");
     let start = Instant::now();
     let pattern = read(&path).expect("Failed to load raw file");
     println!("IO time for GSAS raw: {:?}", start.elapsed());
@@ -76,11 +76,11 @@ fn test_06_read_csv() {
 
 #[test]
 fn test_07_read_bytes_gsas_raw() {
-    let path = PathBuf::from("tests/data/gsas_raw/sample.raw");
+    let path = PathBuf::from("tests/data/gsas_raw/gsas.raw");
     let start = Instant::now();
     let bytes = fs_read(&path).expect("Failed to read file bytes");
     println!("IO time (read bytes) for GSAS raw: {:?}", start.elapsed());
-    let pattern = read_bytes(&bytes, "sample.raw").expect("Failed to load raw from bytes");
+    let pattern = read_bytes(&bytes, "gsas.raw").expect("Failed to load raw from bytes");
     assert!(pattern.x.len() > 0);
     assert_eq!(pattern.x.len(), pattern.y.len());
 }
