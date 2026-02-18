@@ -18,7 +18,7 @@ def _assert_pattern(pattern):
 
 def test_01_read_gsas_raw():
     """Load a GSAS RAW file by path."""
-    path = DATA_DIR / "gsas_raw" / "sample.raw"
+    path = DATA_DIR / "gsas_raw" / "gsas.raw"
     pattern = geddes.read(str(path))
     _assert_pattern(pattern)
 
@@ -53,9 +53,9 @@ def test_05_read_csv():
 
 def test_06_read_bytes_gsas_raw():
     """Load GSAS RAW data from bytes."""
-    path = DATA_DIR / "gsas_raw" / "sample.raw"
+    path = DATA_DIR / "gsas_raw" / "gsas.raw"
     data = path.read_bytes()
-    pattern = geddes.read_bytes(data, "sample.raw")
+    pattern = geddes.read_bytes(data, "gsas.raw")
     _assert_pattern(pattern)
 
 

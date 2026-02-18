@@ -5,7 +5,7 @@ use std::time::Instant;
 
 #[test]
 fn test_01_read_gsas_raw() {
-    let path = PathBuf::from("tests/data/gsas_raw/sample.raw");
+    let path = PathBuf::from("tests/data/gsas_raw/gsas.raw");
     let start = Instant::now();
     let pattern = read(&path).expect("Failed to load raw file");
     println!("IO time for GSAS raw: {:?}", start.elapsed());
@@ -16,7 +16,7 @@ fn test_01_read_gsas_raw() {
 
 #[test]
 fn test_02_read_bruker_raw() {
-    let path = PathBuf::from("tests/data/bruker_raw/bruker.raw");
+    let path = PathBuf::from("tests/data/bruker_raw/bruker4_v5converter.raw");
     let start = Instant::now();
     let pattern = read(&path).expect("Failed to load Bruker raw file");
     println!("IO time for Bruker raw: {:?}", start.elapsed());
@@ -76,26 +76,26 @@ fn test_06_read_csv() {
 
 #[test]
 fn test_07_read_bytes_gsas_raw() {
-    let path = PathBuf::from("tests/data/gsas_raw/sample.raw");
+    let path = PathBuf::from("tests/data/gsas_raw/gsas.raw");
     let start = Instant::now();
     let bytes = fs_read(&path).expect("Failed to read file bytes");
     println!("IO time (read bytes) for GSAS raw: {:?}", start.elapsed());
-    let pattern = read_bytes(&bytes, "sample.raw").expect("Failed to load raw from bytes");
+    let pattern = read_bytes(&bytes, "gsas.raw").expect("Failed to load raw from bytes");
     assert!(pattern.x.len() > 0);
     assert_eq!(pattern.x.len(), pattern.y.len());
 }
 
 #[test]
 fn test_08_read_bytes_bruker_raw() {
-    let path = PathBuf::from("tests/data/bruker_raw/bruker.raw");
+    let path = PathBuf::from("tests/data/bruker_raw/bruker4_v5converter.raw");
     let start = Instant::now();
     let bytes = fs_read(&path).expect("Failed to read Bruker raw bytes");
     println!(
         "IO time (read bytes) for Bruker raw: {:?}",
         start.elapsed()
     );
-    let pattern =
-        read_bytes(&bytes, "bruker.raw").expect("Failed to load Bruker raw from bytes");
+    let pattern = read_bytes(&bytes, "bruker4_v5converter.raw")
+        .expect("Failed to load Bruker raw from bytes");
     assert!(pattern.x.len() > 0);
     assert_eq!(pattern.x.len(), pattern.y.len());
 }
@@ -148,4 +148,34 @@ fn test_12_read_bytes_csv() {
         .as_ref()
         .map(|v| v.len() == pattern.x.len())
         .unwrap_or(true));
+}
+
+#[test]
+fn test_13_bruker_raw_axis_span_is_physical() {
+    let path = PathBuf::from("tests/data/bruker_raw/bruker4_v5converter.raw");
+    let pattern = read(&path).expect("Failed to load Bruker raw file");
+    assert_eq!(pattern.x.len(), pattern.y.len());
+    assert!(pattern.x.len() > 10);
+
+    let x_start = *pattern.x.first().expect("Missing x start");
+    let x_end = *pattern.x.last().expect("Missing x end");
+    let x_span = x_end - x_start;
+
+    // The old heuristic could return near-zero step sizes.
+    assert!(x_span > 1.0, "Bruker x span is unexpectedly tiny: {x_span}");
+    assert!(
+        x_span < 360.0,
+        "Bruker x span is unexpectedly large for a scan: {x_span}"
+    );
+}
+
+#[test]
+fn test_14_bruker_raw_scrambled_rejects_unknown_axis_metadata() {
+    let path = PathBuf::from("tests/data/bruker_raw/bruker4_diffrac_eva.raw");
+    let err = read(&path).expect_err("Expected unsupported Bruker variant to error");
+    let msg = err.to_string();
+    assert!(
+        msg.contains("start/step metadata"),
+        "Unexpected error: {msg}"
+    );
 }
