@@ -337,7 +337,7 @@ pub fn parse_bruker_raw<R: Read>(mut reader: R) -> Result<ParsedPattern, Error> 
     let mut buf = Vec::new();
     reader.read_to_end(&mut buf)?;
 
-    if buf.len() < 32 || !buf.starts_with(b"RAW") {
+    if !buf.starts_with(b"RAW") {
         return Err(Error::Parse(
             "Unsupported Bruker RAW header".into(),
         ));
@@ -401,7 +401,7 @@ fn find_bruker_plain_f32_tail_block(buf: &[u8]) -> Option<BrukerDataLayout> {
         if count < 10 || count > 5_000_000 {
             continue;
         }
-        let data_len = (count as usize).checked_mul(4)?;
+        let data_len = (count as usize) * 4;
         if data_len > len {
             continue;
         }
@@ -522,11 +522,11 @@ fn bruker_start_step_valid(start: f64, step: f64, count: u32) -> bool {
         return false;
     }
     let n = count as f64;
-    let end = start + step * if n > 1.0 { n - 1.0 } else { 0.0 };
-    if !end.is_finite() || end < start {
+    let end = start + step * (n - 1.0);
+    if !end.is_finite() {
         return false;
     }
-    start >= -180.0 && end <= 360.0
+    true
 }
 
 fn score_bruker_start_step(start: f64, step: f64, count: u32) -> f64 {
