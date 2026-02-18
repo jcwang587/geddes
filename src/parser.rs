@@ -333,7 +333,7 @@ pub fn parse_bruker_raw<R: Read>(mut reader: R) -> Result<ParsedPattern, Error> 
     let mut buf = Vec::new();
     reader.read_to_end(&mut buf)?;
 
-    if buf.len() < 32 || !buf.starts_with(b"RAW") {
+    if !buf.starts_with(b"RAW") {
         return Err(Error::Parse(
             "Unsupported Bruker RAW header".into(),
         ));
@@ -375,7 +375,7 @@ fn find_bruker_data_block(buf: &[u8]) -> Option<(u32, usize, usize)> {
         if count < 10 || count > 5_000_000 {
             continue;
         }
-        let data_len = (count as usize).checked_mul(4)?;
+        let data_len = (count as usize) * 4;
         if data_len > len {
             continue;
         }
@@ -398,18 +398,15 @@ fn find_bruker_data_block(buf: &[u8]) -> Option<(u32, usize, usize)> {
 }
 
 fn bruker_data_block_plausible(buf: &[u8], data_offset: usize, count: usize) -> bool {
-    if count == 0 {
-        return false;
-    }
     let samples = 16.min(count);
     for s in 0..samples {
-        let idx = s * (count - 1) / (samples - 1).max(1);
+        let idx = s * (count - 1) / (samples - 1);
         let off = data_offset + idx * 4;
         let val = match read_f32_le(buf, off) {
             Some(v) => v,
             None => return false,
         };
-        if !val.is_finite() || val < 0.0 || val > 1.0e9 {
+        if !val.is_finite() {
             return false;
         }
     }
@@ -450,15 +447,15 @@ fn find_bruker_start_step(
 }
 
 fn bruker_start_step_valid(start: f64, step: f64, count: u32) -> bool {
-    if !start.is_finite() || !step.is_finite() || step <= 0.0 || step > 10.0 {
+    if !start.is_finite() || !step.is_finite() || step <= 0.0 {
         return false;
     }
     let n = count as f64;
-    let end = start + step * if n > 1.0 { n - 1.0 } else { 0.0 };
-    if !end.is_finite() || end < start {
+    let end = start + step * (n - 1.0);
+    if !end.is_finite() {
         return false;
     }
-    start >= -180.0 && end <= 360.0
+    true
 }
 
 fn read_u32_le(buf: &[u8], offset: usize) -> Option<u32> {
