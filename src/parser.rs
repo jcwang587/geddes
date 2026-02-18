@@ -337,7 +337,7 @@ pub fn parse_bruker_raw<R: Read>(mut reader: R) -> Result<ParsedPattern, Error> 
     let mut buf = Vec::new();
     reader.read_to_end(&mut buf)?;
 
-    if buf.len() < 32 || !buf.starts_with(b"RAW") {
+    if !buf.starts_with(b"RAW") {
         return Err(Error::Parse(
             "Unsupported Bruker RAW header".into(),
         ));
@@ -351,8 +351,16 @@ pub fn parse_bruker_raw<R: Read>(mut reader: R) -> Result<ParsedPattern, Error> 
     .into_iter()
     .flatten()
     {
+        if !bruker_layout_data_plausible(&buf, layout) {
+            continue;
+        }
         let count_offsets = find_bruker_count_offsets(&buf, layout.count, layout.data_offset);
-        if let Some((start, step)) = find_bruker_start_step(&buf, &count_offsets, layout.count) {
+        if let Some((start, step)) = find_bruker_start_step(
+            &buf,
+            &count_offsets,
+            layout.count,
+            layout.data_offset,
+        ) {
             let score = score_bruker_start_step(start, step, layout.count);
             match selected {
                 Some((_, _, _, best_score)) if score <= best_score => {}
@@ -401,7 +409,7 @@ fn find_bruker_plain_f32_tail_block(buf: &[u8]) -> Option<BrukerDataLayout> {
         if count < 10 || count > 5_000_000 {
             continue;
         }
-        let data_len = (count as usize).checked_mul(4)?;
+        let data_len = (count as usize) * 4;
         if data_len > len {
             continue;
         }
@@ -476,6 +484,39 @@ fn find_bruker_interleaved_tail_block(buf: &[u8]) -> Option<BrukerDataLayout> {
     best
 }
 
+fn bruker_layout_data_plausible(buf: &[u8], layout: BrukerDataLayout) -> bool {
+    let count = layout.count as usize;
+    if count == 0 {
+        return false;
+    }
+
+    // Sample evenly across the candidate stream. A high fraction of subnormal
+    // values strongly indicates we are reading marker words as floats.
+    let samples = count.min(64);
+    let mut subnormal = 0usize;
+
+    for s in 0..samples {
+        let idx = if samples == 1 {
+            0
+        } else {
+            s * (count - 1) / (samples - 1)
+        };
+        let off = layout.data_offset + idx * layout.stride + layout.value_offset;
+        let val = match read_f32_le(buf, off) {
+            Some(v) => v,
+            None => return false,
+        };
+        if !val.is_finite() {
+            return false;
+        }
+        if val != 0.0 && val.abs() < f32::MIN_POSITIVE {
+            subnormal += 1;
+        }
+    }
+
+    (subnormal as f64) / (samples as f64) <= 0.2
+}
+
 fn find_bruker_count_offsets(buf: &[u8], count: u32, search_end: usize) -> Vec<usize> {
     if search_end < 4 {
         return Vec::new();
@@ -495,6 +536,7 @@ fn find_bruker_start_step(
     buf: &[u8],
     count_offsets: &[usize],
     count: u32,
+    search_end: usize,
 ) -> Option<(f64, f64)> {
     let mut best: Option<(f64, f64, f64)> = None;
 
@@ -514,6 +556,27 @@ fn find_bruker_start_step(
         }
     }
 
+    if best.is_some() {
+        return best.map(|(start, step, _)| (start, step));
+    }
+
+    // Some Bruker RAW variants do not expose a count marker adjacent to axis
+    // metadata. Fall back to scanning the pre-data region for plausible pairs.
+    let end = search_end.min(buf.len().saturating_sub(16));
+    for off in 0..=end {
+        let (start, step) = match (read_f64_le(buf, off), read_f64_le(buf, off + 8)) {
+            (Some(start), Some(step)) => (start, step),
+            _ => continue,
+        };
+        if bruker_start_step_valid(start, step, count) {
+            let score = score_bruker_start_step(start, step, count);
+            match best {
+                Some((_, _, best_score)) if score <= best_score => {}
+                _ => best = Some((start, step, score)),
+            }
+        }
+    }
+
     best.map(|(start, step, _)| (start, step))
 }
 
@@ -522,11 +585,15 @@ fn bruker_start_step_valid(start: f64, step: f64, count: u32) -> bool {
         return false;
     }
     let n = count as f64;
-    let end = start + step * if n > 1.0 { n - 1.0 } else { 0.0 };
-    if !end.is_finite() || end < start {
+    let end = start + step * (n - 1.0);
+    if !end.is_finite() {
         return false;
     }
-    start >= -180.0 && end <= 360.0
+    let span = step * ((n - 1.0).max(0.0));
+    if !span.is_finite() || !(1.0..=360.0).contains(&span) {
+        return false;
+    }
+    true
 }
 
 fn score_bruker_start_step(start: f64, step: f64, count: u32) -> f64 {
