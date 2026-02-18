@@ -185,4 +185,16 @@ fn test_14_bruker_raw_diffrac_eva_loads_with_axis() {
         x_span < 360.0,
         "Bruker x span is unexpectedly large for a scan: {x_span}"
     );
+
+    // Ensure we are not mixing marker words into intensity values.
+    let subnormal = pattern
+        .y
+        .iter()
+        .filter(|&&v| v != 0.0 && v.abs() < f64::from(f32::MIN_POSITIVE))
+        .count();
+    let ratio = subnormal as f64 / pattern.y.len() as f64;
+    assert!(
+        ratio < 0.05,
+        "Too many subnormal intensity values: ratio={ratio}"
+    );
 }

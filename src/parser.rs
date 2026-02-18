@@ -351,6 +351,9 @@ pub fn parse_bruker_raw<R: Read>(mut reader: R) -> Result<ParsedPattern, Error> 
     .into_iter()
     .flatten()
     {
+        if !bruker_layout_data_plausible(&buf, layout) {
+            continue;
+        }
         let count_offsets = find_bruker_count_offsets(&buf, layout.count, layout.data_offset);
         if let Some((start, step)) = find_bruker_start_step(
             &buf,
@@ -479,6 +482,39 @@ fn find_bruker_interleaved_tail_block(buf: &[u8]) -> Option<BrukerDataLayout> {
     }
 
     best
+}
+
+fn bruker_layout_data_plausible(buf: &[u8], layout: BrukerDataLayout) -> bool {
+    let count = layout.count as usize;
+    if count == 0 {
+        return false;
+    }
+
+    // Sample evenly across the candidate stream. A high fraction of subnormal
+    // values strongly indicates we are reading marker words as floats.
+    let samples = count.min(64);
+    let mut subnormal = 0usize;
+
+    for s in 0..samples {
+        let idx = if samples == 1 {
+            0
+        } else {
+            s * (count - 1) / (samples - 1)
+        };
+        let off = layout.data_offset + idx * layout.stride + layout.value_offset;
+        let val = match read_f32_le(buf, off) {
+            Some(v) => v,
+            None => return false,
+        };
+        if !val.is_finite() {
+            return false;
+        }
+        if val != 0.0 && val.abs() < f32::MIN_POSITIVE {
+            subnormal += 1;
+        }
+    }
+
+    (subnormal as f64) / (samples as f64) <= 0.2
 }
 
 fn find_bruker_count_offsets(buf: &[u8], count: u32, search_end: usize) -> Vec<usize> {
