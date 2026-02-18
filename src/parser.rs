@@ -568,10 +568,6 @@ fn find_bruker_start_step(
             (Some(start), Some(step)) => (start, step),
             _ => continue,
         };
-        let span = step * ((count as f64 - 1.0).max(0.0));
-        if !span.is_finite() || !(1.0..=360.0).contains(&span) {
-            continue;
-        }
         if bruker_start_step_valid(start, step, count) {
             let score = score_bruker_start_step(start, step, count);
             match best {
@@ -591,6 +587,10 @@ fn bruker_start_step_valid(start: f64, step: f64, count: u32) -> bool {
     let n = count as f64;
     let end = start + step * (n - 1.0);
     if !end.is_finite() {
+        return false;
+    }
+    let span = step * ((n - 1.0).max(0.0));
+    if !span.is_finite() || !(1.0..=360.0).contains(&span) {
         return false;
     }
     true
