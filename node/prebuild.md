@@ -14,4 +14,3 @@ Equivalent command from `node/`:
 ```bash
 npm run sync:version
 ```
-
