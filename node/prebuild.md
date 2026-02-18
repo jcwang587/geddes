@@ -2,7 +2,7 @@
 
 When preparing a release:
 
-1. Update `[package].version` in `Cargo.toml`.
+1. Update the `version` field in the `[package]` section of `Cargo.toml`.
 2. Sync Node package version from repo root:
 
 ```bash
