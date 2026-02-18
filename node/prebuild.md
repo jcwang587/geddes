@@ -3,10 +3,11 @@
 When preparing a release:
 
 1. Update the `version` field in the `[package]` section of `Cargo.toml`.
-2. Refresh `Cargo.lock` from repo root (this updates the `geddes` package version entry):
+2. Refresh lockfiles from repo root:
 
 ```bash
-cargo check
+cargo update
+cargo update --manifest-path node/Cargo.toml
 ```
 
 3. Sync Node package version from repo root:
