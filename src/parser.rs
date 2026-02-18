@@ -352,7 +352,12 @@ pub fn parse_bruker_raw<R: Read>(mut reader: R) -> Result<ParsedPattern, Error> 
     .flatten()
     {
         let count_offsets = find_bruker_count_offsets(&buf, layout.count, layout.data_offset);
-        if let Some((start, step)) = find_bruker_start_step(&buf, &count_offsets, layout.count) {
+        if let Some((start, step)) = find_bruker_start_step(
+            &buf,
+            &count_offsets,
+            layout.count,
+            layout.data_offset,
+        ) {
             let score = score_bruker_start_step(start, step, layout.count);
             match selected {
                 Some((_, _, _, best_score)) if score <= best_score => {}
@@ -495,6 +500,7 @@ fn find_bruker_start_step(
     buf: &[u8],
     count_offsets: &[usize],
     count: u32,
+    search_end: usize,
 ) -> Option<(f64, f64)> {
     let mut best: Option<(f64, f64, f64)> = None;
 
@@ -510,6 +516,31 @@ fn find_bruker_start_step(
                         _ => best = Some((start, step, score)),
                     }
                 }
+            }
+        }
+    }
+
+    if best.is_some() {
+        return best.map(|(start, step, _)| (start, step));
+    }
+
+    // Some Bruker RAW variants do not expose a count marker adjacent to axis
+    // metadata. Fall back to scanning the pre-data region for plausible pairs.
+    let end = search_end.min(buf.len().saturating_sub(16));
+    for off in 0..=end {
+        let (start, step) = match (read_f64_le(buf, off), read_f64_le(buf, off + 8)) {
+            (Some(start), Some(step)) => (start, step),
+            _ => continue,
+        };
+        let span = step * ((count as f64 - 1.0).max(0.0));
+        if !span.is_finite() || !(1.0..=360.0).contains(&span) {
+            continue;
+        }
+        if bruker_start_step_valid(start, step, count) {
+            let score = score_bruker_start_step(start, step, count);
+            match best {
+                Some((_, _, best_score)) if score <= best_score => {}
+                _ => best = Some((start, step, score)),
             }
         }
     }
