@@ -589,6 +589,10 @@ fn bruker_start_step_valid(start: f64, step: f64, count: u32) -> bool {
     if !end.is_finite() {
         return false;
     }
+    let span = step * ((n - 1.0).max(0.0));
+    if !span.is_finite() || !(1.0..=360.0).contains(&span) {
+        return false;
+    }
     true
 }
 
