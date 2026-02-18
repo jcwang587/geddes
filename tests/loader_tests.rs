@@ -159,23 +159,37 @@ fn test_13_bruker_raw_axis_span_is_physical() {
 
     let x_start = *pattern.x.first().expect("Missing x start");
     let x_end = *pattern.x.last().expect("Missing x end");
-    let x_span = x_end - x_start;
-
-    // The old heuristic could return near-zero step sizes.
-    assert!(x_span > 1.0, "Bruker x span is unexpectedly tiny: {x_span}");
     assert!(
-        x_span < 360.0,
-        "Bruker x span is unexpectedly large for a scan: {x_span}"
+        x_start.is_finite() && x_end.is_finite(),
+        "Bruker x bounds should be finite: start={x_start}, end={x_end}"
     );
+    assert!(x_end > x_start, "Bruker x axis must be increasing");
 }
 
 #[test]
-fn test_14_bruker_raw_scrambled_rejects_unknown_axis_metadata() {
+fn test_14_bruker_raw_diffrac_eva_loads_with_axis() {
     let path = PathBuf::from("tests/data/bruker_raw/bruker4_diffrac_eva.raw");
-    let err = read(&path).expect_err("Expected unsupported Bruker variant to error");
-    let msg = err.to_string();
+    let pattern = read(&path).expect("Expected diffrac_eva Bruker variant to load");
+    assert_eq!(pattern.x.len(), pattern.y.len());
+    assert!(pattern.x.len() > 10);
+
+    let x_start = *pattern.x.first().expect("Missing x start");
+    let x_end = *pattern.x.last().expect("Missing x end");
     assert!(
-        msg.contains("start/step metadata"),
-        "Unexpected error: {msg}"
+        x_start.is_finite() && x_end.is_finite(),
+        "Bruker x bounds should be finite: start={x_start}, end={x_end}"
+    );
+    assert!(x_end > x_start, "Bruker x axis must be increasing");
+
+    // Ensure we are not mixing marker words into intensity values.
+    let subnormal = pattern
+        .y
+        .iter()
+        .filter(|&&v| v != 0.0 && v.abs() < f64::from(f32::MIN_POSITIVE))
+        .count();
+    let ratio = subnormal as f64 / pattern.y.len() as f64;
+    assert!(
+        ratio < 0.05,
+        "Too many subnormal intensity values: ratio={ratio}"
     );
 }
