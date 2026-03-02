@@ -120,7 +120,7 @@ jobs:
         run: npx napi create-npm-dirs
 
       - name: Download all native artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: bindings-*
           path: node/artifacts
