@@ -7,13 +7,13 @@ Run commands from the repository root (`geddes/`).
 Run the Rust loader test suite:
 
 ```bash
-cargo test --test loader_tests -- --nocapture
+cargo test --test test_rust -- --nocapture
 ```
 
 Run a single Rust test:
 
 ```bash
-cargo test --test loader_tests test_14_bruker_raw_diffrac_eva_loads_with_axis -- --nocapture
+cargo test --test test_rust test_14_bruker_raw_diffrac_eva_loads_with_axis -- --nocapture
 ```
 
 ## Python tests
