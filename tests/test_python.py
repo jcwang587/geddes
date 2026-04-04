@@ -128,7 +128,12 @@ def test_16_pattern_new_rejects_non_ascending_x():
         geddes.Pattern([20.0, 10.0], [100.0, 101.0], None)
 
 
-def test_17_read_bytes_rejects_descending_xrdml_axis():
+def test_17_pattern_new_rejects_nan_x():
+    with pytest.raises(ValueError, match="x values must be strictly increasing"):
+        geddes.Pattern([10.0, float("nan")], [100.0, 101.0], None)
+
+
+def test_18_read_bytes_rejects_descending_xrdml_axis():
     data = b"""<?xml version="1.0" encoding="UTF-8"?>
 <xrdMeasurements xmlns="http://www.xrdml.com/XRDMeasurement/1.6">
   <xrdMeasurement>
