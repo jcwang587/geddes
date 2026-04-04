@@ -33,5 +33,5 @@ python -m pytest tests/test_python.py -q
 Run a single Python test:
 
 ```bash
-python -m pytest tests/test_python.py -k test_03_read_xrdml -q
+python -m pytest tests/test_python.py -k test_04_read_xrdml -q
 ```
