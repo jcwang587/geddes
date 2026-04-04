@@ -209,14 +209,16 @@ fn test_15_pattern_new_rejects_mismatched_xy_lengths() {
 
 #[test]
 fn test_16_pattern_new_rejects_non_ascending_x() {
-    let err = Pattern::new(vec![20.0, 10.0], vec![100.0, 101.0], None)
-        .expect_err("descending x values should be rejected");
+    for x in [vec![20.0, 10.0], vec![10.0, 10.0]] {
+        let err = Pattern::new(x, vec![100.0, 101.0], None)
+            .expect_err("non-ascending x values should be rejected");
 
-    match err {
-        Error::Parse(message) => {
-            assert!(message.contains("x values must be strictly increasing"));
+        match err {
+            Error::Parse(message) => {
+                assert!(message.contains("x values must be strictly increasing"));
+            }
+            other => panic!("expected parse error, got {other:?}"),
         }
-        other => panic!("expected parse error, got {other:?}"),
     }
 }
 

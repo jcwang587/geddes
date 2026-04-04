@@ -124,8 +124,9 @@ def test_15_pattern_new_rejects_mismatched_xy_lengths():
 
 
 def test_16_pattern_new_rejects_non_ascending_x():
-    with pytest.raises(ValueError, match="x values must be strictly increasing"):
-        geddes.Pattern([20.0, 10.0], [100.0, 101.0], None)
+    for x in ([20.0, 10.0], [10.0, 10.0]):
+        with pytest.raises(ValueError, match="x values must be strictly increasing"):
+            geddes.Pattern(x, [100.0, 101.0], None)
 
 
 def test_17_pattern_new_rejects_nan_x():
