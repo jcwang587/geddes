@@ -98,6 +98,9 @@ def test_13_bruker_raw_axis_span_is_physical():
     x_end = pattern.x[-1]
     assert math.isfinite(x_start) and math.isfinite(x_end)
     assert x_end > x_start, f"Bruker x axis must be increasing: {x_start} -> {x_end}"
+    assert all(
+        curr > prev for prev, curr in zip(pattern.x, pattern.x[1:])
+    ), "Bruker x axis must be strictly increasing"
 
 
 def test_14_bruker_raw_diffrac_eva_loads_with_axis():
@@ -110,6 +113,9 @@ def test_14_bruker_raw_diffrac_eva_loads_with_axis():
     x_end = pattern.x[-1]
     assert math.isfinite(x_start) and math.isfinite(x_end)
     assert x_end > x_start, f"Bruker x axis must be increasing: {x_start} -> {x_end}"
+    assert all(
+        curr > prev for prev, curr in zip(pattern.x, pattern.x[1:])
+    ), "Bruker x axis must be strictly increasing"
 
     subnormal = sum(
         1 for value in pattern.y if value != 0.0 and abs(value) < FLOAT32_MIN_POSITIVE
@@ -123,13 +129,18 @@ def test_15_pattern_new_rejects_mismatched_xy_lengths():
         geddes.Pattern([10.0], [100.0, 101.0], None)
 
 
-def test_16_pattern_new_rejects_non_ascending_x():
+def test_16_pattern_new_rejects_mismatched_e_length():
+    with pytest.raises(ValueError, match="e must have the same length as x and y"):
+        geddes.Pattern([10.0, 11.0], [100.0, 101.0], [1.0])
+
+
+def test_17_pattern_new_rejects_non_ascending_x():
     for x in ([20.0, 10.0], [10.0, 10.0]):
         with pytest.raises(ValueError, match="x values must be strictly increasing"):
             geddes.Pattern(x, [100.0, 101.0], None)
 
 
-def test_17_pattern_new_rejects_nan_x():
+def test_18_pattern_new_rejects_nan_x():
     nan = float("nan")
     for x in ([10.0, nan], [nan], [nan, 20.0]):
         y = [100.0] * len(x)
@@ -137,7 +148,7 @@ def test_17_pattern_new_rejects_nan_x():
             geddes.Pattern(x, y, None)
 
 
-def test_18_read_bytes_rejects_descending_xrdml_axis():
+def test_19_read_bytes_rejects_descending_xrdml_axis():
     data = b"""<?xml version="1.0" encoding="UTF-8"?>
 <xrdMeasurements xmlns="http://www.xrdml.com/XRDMeasurement/1.6">
   <xrdMeasurement>

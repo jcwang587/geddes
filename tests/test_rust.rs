@@ -164,6 +164,10 @@ fn test_13_bruker_raw_axis_span_is_physical() {
         "Bruker x bounds should be finite: start={x_start}, end={x_end}"
     );
     assert!(x_end > x_start, "Bruker x axis must be increasing");
+    assert!(
+        pattern.x.windows(2).all(|w| w[1] > w[0]),
+        "Bruker x axis must be strictly increasing"
+    );
 }
 
 #[test]
@@ -180,6 +184,10 @@ fn test_14_bruker_raw_diffrac_eva_loads_with_axis() {
         "Bruker x bounds should be finite: start={x_start}, end={x_end}"
     );
     assert!(x_end > x_start, "Bruker x axis must be increasing");
+    assert!(
+        pattern.x.windows(2).all(|w| w[1] > w[0]),
+        "Bruker x axis must be strictly increasing"
+    );
 
     // Ensure we are not mixing marker words into intensity values.
     let subnormal = pattern
@@ -208,7 +216,24 @@ fn test_15_pattern_new_rejects_mismatched_xy_lengths() {
 }
 
 #[test]
-fn test_16_pattern_new_rejects_non_ascending_x() {
+fn test_16_pattern_new_rejects_mismatched_e_length() {
+    let err = Pattern::new(
+        vec![10.0, 11.0],
+        vec![100.0, 101.0],
+        Some(vec![1.0]),
+    )
+    .expect_err("mismatched e length should be rejected");
+
+    match err {
+        Error::Parse(message) => {
+            assert!(message.contains("e must have the same length as x and y"));
+        }
+        other => panic!("expected parse error, got {other:?}"),
+    }
+}
+
+#[test]
+fn test_17_pattern_new_rejects_non_ascending_x() {
     for x in [vec![20.0, 10.0], vec![10.0, 10.0]] {
         let err = Pattern::new(x, vec![100.0, 101.0], None)
             .expect_err("non-ascending x values should be rejected");
@@ -223,7 +248,7 @@ fn test_16_pattern_new_rejects_non_ascending_x() {
 }
 
 #[test]
-fn test_17_pattern_new_rejects_nan_x() {
+fn test_18_pattern_new_rejects_nan_x() {
     let cases = [
         vec![10.0, f64::NAN],
         vec![f64::NAN],
@@ -245,7 +270,7 @@ fn test_17_pattern_new_rejects_nan_x() {
 }
 
 #[test]
-fn test_18_read_bytes_rejects_descending_xrdml_axis() {
+fn test_19_read_bytes_rejects_descending_xrdml_axis() {
     let data = br#"<?xml version="1.0" encoding="UTF-8"?>
 <xrdMeasurements xmlns="http://www.xrdml.com/XRDMeasurement/1.6">
   <xrdMeasurement>
