@@ -130,8 +130,11 @@ def test_16_pattern_new_rejects_non_ascending_x():
 
 
 def test_17_pattern_new_rejects_nan_x():
-    with pytest.raises(ValueError, match="x values must be strictly increasing"):
-        geddes.Pattern([10.0, float("nan")], [100.0, 101.0], None)
+    nan = float("nan")
+    for x in ([10.0, nan], [nan], [nan, 20.0]):
+        y = [100.0] * len(x)
+        with pytest.raises(ValueError, match="x values must be strictly increasing"):
+            geddes.Pattern(x, y, None)
 
 
 def test_18_read_bytes_rejects_descending_xrdml_axis():

@@ -59,12 +59,14 @@ impl Pattern {
             }
         }
 
-        if x.windows(2).any(|window| {
-            !matches!(
-                window[0].partial_cmp(&window[1]),
-                Some(std::cmp::Ordering::Less)
-            )
-        }) {
+        if x.iter().any(|value| value.is_nan())
+            || x.windows(2).any(|window| {
+                !matches!(
+                    window[0].partial_cmp(&window[1]),
+                    Some(std::cmp::Ordering::Less)
+                )
+            })
+        {
             return Err(Error::Parse(
                 "x values must be strictly increasing".into(),
             ));

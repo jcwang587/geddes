@@ -224,14 +224,23 @@ fn test_16_pattern_new_rejects_non_ascending_x() {
 
 #[test]
 fn test_17_pattern_new_rejects_nan_x() {
-    let err = Pattern::new(vec![10.0, f64::NAN], vec![100.0, 101.0], None)
-        .expect_err("NaN x values should be rejected");
+    let cases = [
+        vec![10.0, f64::NAN],
+        vec![f64::NAN],
+        vec![f64::NAN, 20.0],
+    ];
 
-    match err {
-        Error::Parse(message) => {
-            assert!(message.contains("x values must be strictly increasing"));
+    for x in cases {
+        let y = vec![100.0; x.len()];
+        let err = Pattern::new(x, y, None)
+            .expect_err("NaN x values should be rejected");
+
+        match err {
+            Error::Parse(message) => {
+                assert!(message.contains("x values must be strictly increasing"));
+            }
+            other => panic!("expected parse error, got {other:?}"),
         }
-        other => panic!("expected parse error, got {other:?}"),
     }
 }
 
