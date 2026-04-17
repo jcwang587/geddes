@@ -35,12 +35,6 @@ cargo check --manifest-path node/Cargo.toml
 npm --prefix node run build
 ```
 
-For publish-time preparation, this is also acceptable:
-
-```bash
-npm --prefix node run prepublishOnly
-```
-
 ## Notes
 
 - `npm --prefix node run sync:version` updates manifest files only; it does not regenerate `node/index.js`.
