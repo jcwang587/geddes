@@ -34,31 +34,45 @@ pub struct Pattern {
 }
 
 impl Pattern {
-    /// Creates a new diffraction pattern, returning an error if lengths are inconsistent.
+    /// Creates a new diffraction pattern, returning an error if lengths are inconsistent
+    /// or the x-axis is not strictly increasing.
     pub fn new(x: Vec<f64>, y: Vec<f64>, e: Option<Vec<f64>>) -> Result<Self, Error> {
+        Self::validate(&x, &y, e.as_deref())?;
+        Ok(Pattern { x, y, e })
+    }
+
+    fn from_parsed(data: ParsedPattern) -> Result<Self, Error> {
+        Self::new(data.x, data.y, data.e)
+    }
+
+    fn validate(x: &[f64], y: &[f64], e: Option<&[f64]>) -> Result<(), Error> {
         if x.len() != y.len() {
             return Err(Error::Parse(
                 "x and y must have the same length".into(),
             ));
         }
-        if let Some(ref e_vec) = e {
+        if let Some(e_vec) = e {
             if e_vec.len() != x.len() {
                 return Err(Error::Parse(
                     "e must have the same length as x and y".into(),
                 ));
             }
         }
-        Ok(Pattern { x, y, e })
-    }
-}
 
-impl From<ParsedPattern> for Pattern {
-    fn from(data: ParsedPattern) -> Self {
-        Pattern {
-            x: data.x,
-            y: data.y,
-            e: data.e,
+        if x.iter().any(|value| value.is_nan())
+            || x.windows(2).any(|window| {
+                !matches!(
+                    window[0].partial_cmp(&window[1]),
+                    Some(std::cmp::Ordering::Less)
+                )
+            })
+        {
+            return Err(Error::Parse(
+                "x values must be strictly increasing".into(),
+            ));
         }
+
+        Ok(())
     }
 }
 
@@ -140,7 +154,7 @@ pub fn read_reader<R: Read + Seek>(
         _ => return Err(Error::UnknownFormat),
     };
 
-    Ok(data.into())
+    Pattern::from_parsed(data)
 }
 
 /// Load a pattern from in-memory bytes with a filename hint.

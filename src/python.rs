@@ -17,6 +17,14 @@ fn to_py_err(err: Error) -> PyErr {
     }
 }
 
+#[pymethods]
+impl Pattern {
+    #[new]
+    fn py_new(x: Vec<f64>, y: Vec<f64>, e: Option<Vec<f64>>) -> PyResult<Self> {
+        Pattern::new(x, y, e).map_err(to_py_err)
+    }
+}
+
 /// Load a pattern from a file path.
 #[pyfunction(name = "read")]
 fn read_py(path: &str) -> PyResult<Pattern> {

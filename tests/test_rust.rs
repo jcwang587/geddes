@@ -1,4 +1,4 @@
-use geddes::{read, read_bytes};
+use geddes::{read, read_bytes, Error, Pattern};
 use std::fs::read as fs_read;
 use std::path::PathBuf;
 use std::time::Instant;
@@ -164,6 +164,10 @@ fn test_13_bruker_raw_axis_span_is_physical() {
         "Bruker x bounds should be finite: start={x_start}, end={x_end}"
     );
     assert!(x_end > x_start, "Bruker x axis must be increasing");
+    assert!(
+        pattern.x.windows(2).all(|w| w[1] > w[0]),
+        "Bruker x axis must be strictly increasing"
+    );
 }
 
 #[test]
@@ -180,6 +184,10 @@ fn test_14_bruker_raw_diffrac_eva_loads_with_axis() {
         "Bruker x bounds should be finite: start={x_start}, end={x_end}"
     );
     assert!(x_end > x_start, "Bruker x axis must be increasing");
+    assert!(
+        pattern.x.windows(2).all(|w| w[1] > w[0]),
+        "Bruker x axis must be strictly increasing"
+    );
 
     // Ensure we are not mixing marker words into intensity values.
     let subnormal = pattern
@@ -192,4 +200,100 @@ fn test_14_bruker_raw_diffrac_eva_loads_with_axis() {
         ratio < 0.05,
         "Too many subnormal intensity values: ratio={ratio}"
     );
+}
+
+#[test]
+fn test_15_pattern_new_rejects_mismatched_xy_lengths() {
+    let err = Pattern::new(vec![10.0], vec![100.0, 101.0], None)
+        .expect_err("mismatched x/y lengths should be rejected");
+
+    match err {
+        Error::Parse(message) => {
+            assert!(message.contains("x and y must have the same length"));
+        }
+        other => panic!("expected parse error, got {other:?}"),
+    }
+}
+
+#[test]
+fn test_16_pattern_new_rejects_mismatched_e_length() {
+    let err = Pattern::new(
+        vec![10.0, 11.0],
+        vec![100.0, 101.0],
+        Some(vec![1.0]),
+    )
+    .expect_err("mismatched e length should be rejected");
+
+    match err {
+        Error::Parse(message) => {
+            assert!(message.contains("e must have the same length as x and y"));
+        }
+        other => panic!("expected parse error, got {other:?}"),
+    }
+}
+
+#[test]
+fn test_17_pattern_new_rejects_non_ascending_x() {
+    for x in [vec![20.0, 10.0], vec![10.0, 10.0]] {
+        let err = Pattern::new(x, vec![100.0, 101.0], None)
+            .expect_err("non-ascending x values should be rejected");
+
+        match err {
+            Error::Parse(message) => {
+                assert!(message.contains("x values must be strictly increasing"));
+            }
+            other => panic!("expected parse error, got {other:?}"),
+        }
+    }
+}
+
+#[test]
+fn test_18_pattern_new_rejects_nan_x() {
+    let cases = [
+        vec![10.0, f64::NAN],
+        vec![f64::NAN],
+        vec![f64::NAN, 20.0],
+    ];
+
+    for x in cases {
+        let y = vec![100.0; x.len()];
+        let err = Pattern::new(x, y, None)
+            .expect_err("NaN x values should be rejected");
+
+        match err {
+            Error::Parse(message) => {
+                assert!(message.contains("x values must be strictly increasing"));
+            }
+            other => panic!("expected parse error, got {other:?}"),
+        }
+    }
+}
+
+#[test]
+fn test_19_read_bytes_rejects_descending_xrdml_axis() {
+    let data = br#"<?xml version="1.0" encoding="UTF-8"?>
+<xrdMeasurements xmlns="http://www.xrdml.com/XRDMeasurement/1.6">
+  <xrdMeasurement>
+    <scan>
+      <dataPoints>
+        <positions axis="2Theta">
+          <startPosition>20.0</startPosition>
+          <endPosition>10.0</endPosition>
+        </positions>
+        <intensities>100 101 102</intensities>
+      </dataPoints>
+    </scan>
+  </xrdMeasurement>
+</xrdMeasurements>
+"#;
+
+    let err = read_bytes(data.as_slice(), "descending.xrdml")
+        .expect_err("descending XRDML 2Theta axis should be rejected");
+
+    match err {
+        Error::Parse(message) => {
+            assert!(message.contains("x values must be strictly increasing"));
+        }
+        other => panic!("expected parse error, got {other:?}"),
+    }
 }
