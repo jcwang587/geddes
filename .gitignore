@@ -7,3 +7,4 @@ node/node_modules/
 node/npm/
 node/artifacts/
 node/*.node
+.pytest_cache/
