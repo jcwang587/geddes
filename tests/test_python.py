@@ -111,6 +111,7 @@ def test_14_bruker_raw_diffrac_eva_loads_with_axis():
     path = DATA_DIR / "bruker_raw" / "bruker4_diffrac_eva.raw"
     pattern = geddes.read(str(path))
     assert len(pattern.x) == len(pattern.y)
+    # Expected point count verified against Bruker DIFFRAC.EVA export metadata.
     assert len(pattern.x) == 7134
     assert len(pattern.x) > 10
 

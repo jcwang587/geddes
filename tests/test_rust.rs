@@ -187,6 +187,7 @@ fn test_14_bruker_raw_diffrac_eva_loads_with_axis() {
     let path = PathBuf::from("tests/data/bruker_raw/bruker4_diffrac_eva.raw");
     let pattern = read(&path).expect("Expected diffrac_eva Bruker variant to load");
     assert_eq!(pattern.x.len(), pattern.y.len());
+    // Expected point count verified against Bruker DIFFRAC.EVA export metadata.
     assert_eq!(pattern.x.len(), 7134);
     assert!(pattern.x.len() > 10);
 
