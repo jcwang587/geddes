@@ -1,6 +1,7 @@
 use crate::error::Error;
 use quick_xml::events::Event;
 use quick_xml::Reader;
+use std::collections::HashSet;
 use std::io::{BufRead, BufReader, Read, Seek};
 use zip::ZipArchive;
 
@@ -343,19 +344,35 @@ pub fn parse_bruker_raw<R: Read>(mut reader: R) -> Result<ParsedPattern, Error> 
         ));
     }
 
-    let mut selected: Option<(BrukerDataLayout, f64, f64, f64)> = None;
-    for layout in [
-        find_bruker_interleaved_tail_block(&buf),
-        find_bruker_plain_f32_tail_block(&buf),
-    ]
-    .into_iter()
-    .flatten()
-    {
+    let mut candidate_layouts = Vec::new();
+    if let Some(layout) = find_bruker_interleaved_tail_block(&buf) {
+        candidate_layouts.push(layout);
+        candidate_layouts.extend(find_bruker_interleaved_count_marker_blocks(
+            &buf,
+            layout.data_offset,
+        ));
+    }
+    if let Some(layout) = find_bruker_plain_f32_tail_block(&buf) {
+        candidate_layouts.push(layout);
+    }
+
+    let mut seen_layouts = HashSet::new();
+    candidate_layouts.retain(|layout| {
+        seen_layouts.insert((
+            layout.count,
+            layout.data_offset,
+            layout.stride,
+            layout.value_offset,
+        ))
+    });
+
+    let mut selected: Option<(BrukerDataLayout, f64, f64, bool, f64)> = None;
+    for layout in candidate_layouts {
         if !bruker_layout_data_plausible(&buf, layout) {
             continue;
         }
         let count_offsets = find_bruker_count_offsets(&buf, layout.count, layout.data_offset);
-        if let Some((start, step)) = find_bruker_start_step(
+        if let Some((start, step, has_count_marker)) = find_bruker_start_step(
             &buf,
             &count_offsets,
             layout.count,
@@ -363,13 +380,15 @@ pub fn parse_bruker_raw<R: Read>(mut reader: R) -> Result<ParsedPattern, Error> 
         ) {
             let score = score_bruker_start_step(start, step, layout.count);
             match selected {
-                Some((_, _, _, best_score)) if score <= best_score => {}
-                _ => selected = Some((layout, start, step, score)),
+                Some((_, _, _, best_has_count_marker, best_score))
+                    if (has_count_marker as u8, score)
+                        <= (best_has_count_marker as u8, best_score) => {}
+                _ => selected = Some((layout, start, step, has_count_marker, score)),
             }
         }
     }
 
-    let (layout, start, step, _) = selected.ok_or_else(|| {
+    let (layout, start, step, _, _) = selected.ok_or_else(|| {
         Error::Parse("Failed to locate Bruker RAW start/step metadata".into())
     })?;
     let count = layout.count;
@@ -484,6 +503,87 @@ fn find_bruker_interleaved_tail_block(buf: &[u8]) -> Option<BrukerDataLayout> {
     best
 }
 
+fn find_bruker_interleaved_count_marker_blocks(
+    buf: &[u8],
+    search_end: usize,
+) -> Vec<BrukerDataLayout> {
+    const MIN_POINTS: u32 = 32;
+    const MAX_POINTS: u32 = 5_000_000;
+    const FLAG_MAX: u32 = 3;
+
+    let len = buf.len();
+    let mut layouts = Vec::new();
+    let mut seen = HashSet::new();
+
+    let end = search_end.min(len.saturating_sub(4));
+    for off in 0..=end {
+        let count = match read_u32_le(buf, off) {
+            Some(value) => value,
+            None => continue,
+        };
+        if !(MIN_POINTS..=MAX_POINTS).contains(&count) {
+            continue;
+        }
+
+        let start_off = match off.checked_sub(16) {
+            Some(value) => value,
+            None => continue,
+        };
+        let (start, step) = match (read_f64_le(buf, start_off), read_f64_le(buf, start_off + 8)) {
+            (Some(start), Some(step)) => (start, step),
+            _ => continue,
+        };
+        if !bruker_start_step_valid(start, step, count) {
+            continue;
+        }
+
+        let data_len = (count as usize) * 8;
+        if data_len > len {
+            continue;
+        }
+        let data_offset = len - data_len;
+        if off >= data_offset {
+            continue;
+        }
+
+        for value_offset in [0usize, 4usize] {
+            let companion_offset = if value_offset == 0 { 4usize } else { 0usize };
+            let count_usize = count as usize;
+            let sample_indices = [0usize, count_usize / 2, count_usize - 1];
+            let mut flags_plausible = true;
+            for idx in sample_indices {
+                let rec_off = data_offset + idx * 8;
+                let flag = match read_u32_le(buf, rec_off + companion_offset) {
+                    Some(v) => v,
+                    None => {
+                        flags_plausible = false;
+                        break;
+                    }
+                };
+                if flag > FLAG_MAX {
+                    flags_plausible = false;
+                    break;
+                }
+            }
+            if !flags_plausible {
+                continue;
+            }
+
+            let key = (count, data_offset, value_offset);
+            if seen.insert(key) {
+                layouts.push(BrukerDataLayout {
+                    count,
+                    data_offset,
+                    stride: 8,
+                    value_offset,
+                });
+            }
+        }
+    }
+
+    layouts
+}
+
 fn bruker_layout_data_plausible(buf: &[u8], layout: BrukerDataLayout) -> bool {
     let count = layout.count as usize;
     if count == 0 {
@@ -537,7 +637,7 @@ fn find_bruker_start_step(
     count_offsets: &[usize],
     count: u32,
     search_end: usize,
-) -> Option<(f64, f64)> {
+) -> Option<(f64, f64, bool)> {
     let mut best: Option<(f64, f64, f64)> = None;
 
     for &count_offset in count_offsets {
@@ -557,7 +657,7 @@ fn find_bruker_start_step(
     }
 
     if best.is_some() {
-        return best.map(|(start, step, _)| (start, step));
+        return best.map(|(start, step, _)| (start, step, true));
     }
 
     // Some Bruker RAW variants do not expose a count marker adjacent to axis
@@ -577,7 +677,7 @@ fn find_bruker_start_step(
         }
     }
 
-    best.map(|(start, step, _)| (start, step))
+    best.map(|(start, step, _)| (start, step, false))
 }
 
 fn bruker_start_step_valid(start: f64, step: f64, count: u32) -> bool {
