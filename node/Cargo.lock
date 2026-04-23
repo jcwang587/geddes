@@ -181,7 +181,7 @@ dependencies = [
 
 [[package]]
 name = "geddes"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "quick-xml",
  "serde",
@@ -192,7 +192,7 @@ dependencies = [
 
 [[package]]
 name = "geddes-node"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "geddes",
  "napi",
@@ -474,9 +474,9 @@ checksum = "f0805222e57f7521d6a62e36fa9163bc891acd422f971defe97d64e70d0a4fe5"
 
 [[package]]
 name = "zip"
-version = "8.5.0"
+version = "8.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2726508a48f38dceb22b35ecbbd2430efe34ff05c62bd3285f965d7911b33464"
+checksum = "dcab981e19633ebcf0b001ddd37dd802996098bc1864f90b7c5d970ce76c1d59"
 dependencies = [
  "crc32fast",
  "flate2",
