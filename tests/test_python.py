@@ -32,6 +32,8 @@ def test_03_read_rasx():
     path = DATA_DIR / "rasx" / "sample.rasx"
     pattern = geddes.read(str(path))
     _assert_pattern(pattern)
+    assert len(pattern.x) == 2334
+    assert abs(pattern.x[0] - 10.0) < 1e-9
 
 
 def test_04_read_xrdml():
@@ -68,6 +70,8 @@ def test_09_read_bytes_rasx():
     path = DATA_DIR / "rasx" / "sample.rasx"
     pattern = geddes.read_bytes(path.read_bytes(), "sample.rasx")
     _assert_pattern(pattern)
+    assert len(pattern.x) == 2334
+    assert abs(pattern.x[0] - 10.0) < 1e-9
 
 
 def test_10_read_bytes_xrdml():

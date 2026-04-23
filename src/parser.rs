@@ -116,7 +116,9 @@ pub fn parse_rasx<R: Read + Seek>(reader: R) -> Result<ParsedPattern, Error> {
 
     for line in reader.lines() {
         let line = line?;
-        let line = line.trim();
+        // Some RASX exports include a UTF-8 BOM at the beginning of Profile0.txt.
+        // Strip it so the first x value parses instead of being silently skipped.
+        let line = line.trim().trim_start_matches('\u{feff}');
         if line.is_empty() {
             continue;
         }
