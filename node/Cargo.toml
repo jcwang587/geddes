@@ -1,6 +1,6 @@
 [package]
 name = "geddes-node"
-version = "0.4.0"
+version = "0.4.0-alpha.0"
 edition = "2021"
 license = "MIT"
 publish = false
@@ -19,3 +19,6 @@ napi-build = "2"
 [profile.release]
 lto = true
 strip = "symbols"
+
+
+
