@@ -32,6 +32,8 @@ def test_03_read_rasx():
     path = DATA_DIR / "rasx" / "sample.rasx"
     pattern = geddes.read(str(path))
     _assert_pattern(pattern)
+    assert len(pattern.x) == 2334
+    assert abs(pattern.x[0] - 10.0) < 1e-9
 
 
 def test_04_read_xrdml():
@@ -68,6 +70,8 @@ def test_09_read_bytes_rasx():
     path = DATA_DIR / "rasx" / "sample.rasx"
     pattern = geddes.read_bytes(path.read_bytes(), "sample.rasx")
     _assert_pattern(pattern)
+    assert len(pattern.x) == 2334
+    assert abs(pattern.x[0] - 10.0) < 1e-9
 
 
 def test_10_read_bytes_xrdml():
@@ -107,6 +111,8 @@ def test_14_bruker_raw_diffrac_eva_loads_with_axis():
     path = DATA_DIR / "bruker_raw" / "bruker4_diffrac_eva.raw"
     pattern = geddes.read(str(path))
     assert len(pattern.x) == len(pattern.y)
+    # Expected point count verified against Bruker DIFFRAC.EVA export metadata.
+    assert len(pattern.x) == 7134
     assert len(pattern.x) > 10
 
     x_start = pattern.x[0]

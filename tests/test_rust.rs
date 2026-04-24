@@ -33,6 +33,12 @@ fn test_03_read_rasx() {
     println!("IO time for rasx: {:?}", start.elapsed());
     assert!(pattern.x.len() > 0);
     assert_eq!(pattern.x.len(), pattern.y.len());
+    assert_eq!(pattern.x.len(), 2334);
+    assert!(
+        (pattern.x[0] - 10.0).abs() < 1.0e-9,
+        "Unexpected first RASX x value: {}",
+        pattern.x[0]
+    );
     println!("Loaded {} points from rasx", pattern.x.len());
 }
 
@@ -109,6 +115,12 @@ fn test_09_read_bytes_rasx() {
     let pattern = read_bytes(&bytes, "sample.rasx").expect("Failed to load rasx from bytes");
     assert!(pattern.x.len() > 0);
     assert_eq!(pattern.x.len(), pattern.y.len());
+    assert_eq!(pattern.x.len(), 2334);
+    assert!(
+        (pattern.x[0] - 10.0).abs() < 1.0e-9,
+        "Unexpected first RASX x value from bytes: {}",
+        pattern.x[0]
+    );
 }
 
 #[test]
@@ -175,6 +187,8 @@ fn test_14_bruker_raw_diffrac_eva_loads_with_axis() {
     let path = PathBuf::from("tests/data/bruker_raw/bruker4_diffrac_eva.raw");
     let pattern = read(&path).expect("Expected diffrac_eva Bruker variant to load");
     assert_eq!(pattern.x.len(), pattern.y.len());
+    // Expected point count verified against Bruker DIFFRAC.EVA export metadata.
+    assert_eq!(pattern.x.len(), 7134);
     assert!(pattern.x.len() > 10);
 
     let x_start = *pattern.x.first().expect("Missing x start");

@@ -1,6 +1,6 @@
 [package]
 name = "geddes"
-version = "0.3.0"
+version = "0.4.0-alpha.0"
 edition = "2021"
 description = "A Rust library for parsing XRD pattern files"
 license = "MIT"
@@ -13,11 +13,11 @@ categories = ["science", "parsing"]
 crate-type = ["rlib", "cdylib"]
 
 [dependencies]
-zip = { version = "8.4.0", default-features = false, features = ["deflate"] }
-thiserror = "2.0"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-pyo3 = { version = "0.28", optional = true, features = ["extension-module"] }
+zip = { version = "8.5.1", default-features = false, features = ["deflate"] }
+thiserror = "2.0.18"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+pyo3 = { version = "0.28.3", optional = true, features = ["extension-module"] }
 quick-xml = "0.39.2"
 
 [features]

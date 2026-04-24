@@ -59,17 +59,23 @@ impl Pattern {
             }
         }
 
-        if x.iter().any(|value| value.is_nan())
-            || x.windows(2).any(|window| {
-                !matches!(
-                    window[0].partial_cmp(&window[1]),
-                    Some(std::cmp::Ordering::Less)
-                )
-            })
-        {
-            return Err(Error::Parse(
-                "x values must be strictly increasing".into(),
-            ));
+        // Single pass: rejects NaN (via `!(prev < v)`, since any comparison
+        // with NaN is false) and non-strictly-increasing values together.
+        let mut iter = x.iter().copied();
+        if let Some(mut prev) = iter.next() {
+            if prev.is_nan() {
+                return Err(Error::Parse(
+                    "x values must be strictly increasing".into(),
+                ));
+            }
+            for v in iter {
+                if !(prev < v) {
+                    return Err(Error::Parse(
+                        "x values must be strictly increasing".into(),
+                    ));
+                }
+                prev = v;
+            }
         }
 
         Ok(())
