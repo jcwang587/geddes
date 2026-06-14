@@ -1,11 +1,18 @@
+# Rust build artifacts
 /target
-.venv/
-/scripts/
-__pycache__/
 node/target/
+
+# Local helper scripts
+/scripts/
+.claude/
+
+# Python environments and caches
+.venv/
+__pycache__/
+.pytest_cache/
+
+# Node.js dependencies and build outputs
 node/node_modules/
 node/npm/
 node/artifacts/
 node/*.node
-.pytest_cache/
-.claude/
