@@ -21,7 +21,7 @@ use std::io::{Cursor, Read, Seek, SeekFrom};
 use std::path::Path;
 
 /// Represents a diffraction pattern with position, intensity, and optional error.
-#[cfg_attr(feature = "python", pyclass(get_all))]
+#[cfg_attr(feature = "python", pyclass(get_all, skip_from_py_object))]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Pattern {
     /// The x-axis values (e.g., 2-theta or Q).

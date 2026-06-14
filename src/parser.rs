@@ -1,6 +1,6 @@
 use crate::error::Error;
 use quick_xml::events::Event;
-use quick_xml::Reader;
+use quick_xml::{Reader, XmlVersion};
 use std::collections::HashSet;
 use std::io::{BufRead, BufReader, Read, Seek};
 use zip::ZipArchive;
@@ -161,7 +161,7 @@ pub(crate) fn parse_xrdml<R: Read>(reader: R) -> Result<ParsedPattern, Error> {
                         })?;
                         if attr.key.as_ref() == b"axis" {
                             let axis = attr
-                                .unescape_value()
+                                .normalized_value(XmlVersion::Implicit1_0)
                                 .map_err(|err| {
                                     Error::Parse(format!(
                                         "XRDML attribute decode error: {err}"
