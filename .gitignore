@@ -8,3 +8,4 @@ node/npm/
 node/artifacts/
 node/*.node
 .pytest_cache/
+.claude/

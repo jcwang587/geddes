@@ -12,11 +12,10 @@ pub struct Pattern {
 
 impl From<geddes::Pattern> for Pattern {
     fn from(value: geddes::Pattern) -> Self {
-        Self {
-            x: value.x,
-            y: value.y,
-            e: value.e,
-        }
+        // Destructure exhaustively (no `..`) so a new field on geddes::Pattern
+        // fails to compile here instead of being silently dropped.
+        let geddes::Pattern { x, y, e } = value;
+        Self { x, y, e }
     }
 }
 
