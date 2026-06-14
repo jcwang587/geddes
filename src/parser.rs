@@ -7,7 +7,7 @@ use zip::ZipArchive;
 
 /// Intermediate structure to hold parsed data before converting to the public Pattern struct.
 #[derive(Debug)]
-pub struct ParsedPattern {
+pub(crate) struct ParsedPattern {
     pub x: Vec<f64>,
     pub y: Vec<f64>,
     pub e: Option<Vec<f64>>,
@@ -31,7 +31,7 @@ fn parse_columns(parts: &[&str], x: &mut Vec<f64>, y: &mut Vec<f64>, e: &mut Vec
 /// Parses standard XY files (two or three columns: x, y, [e]).
 ///
 /// Ignores lines starting with '#' or '!'.
-pub fn parse_xy<R: Read>(reader: R) -> Result<ParsedPattern, Error> {
+pub(crate) fn parse_xy<R: Read>(reader: R) -> Result<ParsedPattern, Error> {
     let reader = BufReader::new(reader);
     let mut x = Vec::new();
     let mut y = Vec::new();
@@ -58,7 +58,7 @@ pub fn parse_xy<R: Read>(reader: R) -> Result<ParsedPattern, Error> {
 /// Parses CSV files.
 ///
 /// Supports comma or whitespace as delimiters.
-pub fn parse_csv<R: Read>(reader: R) -> Result<ParsedPattern, Error> {
+pub(crate) fn parse_csv<R: Read>(reader: R) -> Result<ParsedPattern, Error> {
     let reader = BufReader::new(reader);
     let mut x = Vec::new();
     let mut y = Vec::new();
@@ -90,7 +90,7 @@ pub fn parse_csv<R: Read>(reader: R) -> Result<ParsedPattern, Error> {
 /// Parses Rigaku RASX files (zipped XML/text format).
 ///
 /// Looks for a `Profile*.txt` file inside the archive.
-pub fn parse_rasx<R: Read + Seek>(reader: R) -> Result<ParsedPattern, Error> {
+pub(crate) fn parse_rasx<R: Read + Seek>(reader: R) -> Result<ParsedPattern, Error> {
     let mut archive = ZipArchive::new(reader)?;
 
     let names: Vec<String> = (0..archive.len())
@@ -136,7 +136,7 @@ pub fn parse_rasx<R: Read + Seek>(reader: R) -> Result<ParsedPattern, Error> {
 /// Parses Panalytical XRDML files (XML-based).
 ///
 /// Extracts the 2Theta start/end positions and the intensities list.
-pub fn parse_xrdml<R: Read>(reader: R) -> Result<ParsedPattern, Error> {
+pub(crate) fn parse_xrdml<R: Read>(reader: R) -> Result<ParsedPattern, Error> {
     let reader = BufReader::new(reader);
     let mut xml = Reader::from_reader(reader);
     xml.config_mut().trim_text(true);
@@ -268,7 +268,7 @@ pub fn parse_xrdml<R: Read>(reader: R) -> Result<ParsedPattern, Error> {
 /// Parses GSAS RAW files.
 ///
 /// Expects a `BANK` header line to determine start angle and step size.
-pub fn parse_gsas_raw<R: Read>(reader: R) -> Result<ParsedPattern, Error> {
+pub(crate) fn parse_gsas_raw<R: Read>(reader: R) -> Result<ParsedPattern, Error> {
     let reader = BufReader::new(reader);
     let mut lines = reader.lines();
 
@@ -336,7 +336,7 @@ pub fn parse_gsas_raw<R: Read>(reader: R) -> Result<ParsedPattern, Error> {
 /// Bruker RAW4 files are not fully documented and may store intensity points
 /// either as contiguous `f32` values or as interleaved records near the file
 /// tail (e.g. `f32 value` + `u32 status`).
-pub fn parse_bruker_raw<R: Read>(mut reader: R) -> Result<ParsedPattern, Error> {
+pub(crate) fn parse_bruker_raw<R: Read>(mut reader: R) -> Result<ParsedPattern, Error> {
     let mut buf = Vec::new();
     reader.read_to_end(&mut buf)?;
 

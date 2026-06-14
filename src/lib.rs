@@ -98,7 +98,7 @@ pub fn read<P: AsRef<Path>>(path: P) -> Result<Pattern, Error> {
     let path = path.as_ref();
     let file = File::open(path)?;
     let filename = path.file_name().and_then(|s| s.to_str()).unwrap_or("");
-    read_reader(file, filename)
+    from_reader(file, filename)
 }
 
 /// Load a pattern from any reader that implements Read + Seek.
@@ -115,14 +115,14 @@ pub fn read<P: AsRef<Path>>(path: P) -> Result<Pattern, Error> {
 ///
 /// ```
 /// use std::io::Cursor;
-/// use geddes::read_reader;
+/// use geddes::from_reader;
 ///
 /// let data = b"10.0 100.0\n10.1 105.0";
 /// let cursor = Cursor::new(data);
-/// let pattern = read_reader(cursor, "data.xy").unwrap();
+/// let pattern = from_reader(cursor, "data.xy").unwrap();
 /// assert_eq!(pattern.x.len(), 2);
 /// ```
-pub fn read_reader<R: Read + Seek>(
+pub fn from_reader<R: Read + Seek>(
     reader: R,
     filename: &str,
 ) -> Result<Pattern, Error> {
@@ -166,5 +166,5 @@ pub fn read_reader<R: Read + Seek>(
 /// Load a pattern from in-memory bytes with a filename hint.
 pub fn read_bytes<B: AsRef<[u8]>>(bytes: B, filename: &str) -> Result<Pattern, Error> {
     let cursor = Cursor::new(bytes.as_ref());
-    read_reader(cursor, filename)
+    from_reader(cursor, filename)
 }

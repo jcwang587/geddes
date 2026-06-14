@@ -16,19 +16,19 @@ def _assert_pattern(pattern):
         assert len(pattern.e) == len(pattern.x)
 
 
-def test_01_read_gsas_raw():
+def test_reads_gsas_raw_from_path():
     path = DATA_DIR / "gsas_raw" / "gsas.raw"
     pattern = geddes.read(str(path))
     _assert_pattern(pattern)
 
 
-def test_02_read_bruker_raw():
+def test_reads_bruker_raw_from_path():
     path = DATA_DIR / "bruker_raw" / "bruker4_v5converter.raw"
     pattern = geddes.read(str(path))
     _assert_pattern(pattern)
 
 
-def test_03_read_rasx():
+def test_reads_rasx_from_path():
     path = DATA_DIR / "rasx" / "sample.rasx"
     pattern = geddes.read(str(path))
     _assert_pattern(pattern)
@@ -36,37 +36,37 @@ def test_03_read_rasx():
     assert abs(pattern.x[0] - 10.0) < 1e-9
 
 
-def test_04_read_xrdml():
+def test_reads_xrdml_from_path():
     path = DATA_DIR / "xrdml" / "sample.xrdml"
     pattern = geddes.read(str(path))
     _assert_pattern(pattern)
 
 
-def test_05_read_xy():
+def test_reads_xy_from_path():
     path = DATA_DIR / "xy" / "sample.xy"
     pattern = geddes.read(str(path))
     _assert_pattern(pattern)
 
 
-def test_06_read_csv():
+def test_reads_csv_from_path():
     path = DATA_DIR / "csv" / "sample.csv"
     pattern = geddes.read(str(path))
     _assert_pattern(pattern)
 
 
-def test_07_read_bytes_gsas_raw():
+def test_reads_gsas_raw_from_bytes():
     path = DATA_DIR / "gsas_raw" / "gsas.raw"
     pattern = geddes.read_bytes(path.read_bytes(), "gsas.raw")
     _assert_pattern(pattern)
 
 
-def test_08_read_bytes_bruker_raw():
+def test_reads_bruker_raw_from_bytes():
     path = DATA_DIR / "bruker_raw" / "bruker4_v5converter.raw"
     pattern = geddes.read_bytes(path.read_bytes(), "bruker4_v5converter.raw")
     _assert_pattern(pattern)
 
 
-def test_09_read_bytes_rasx():
+def test_reads_rasx_from_bytes():
     path = DATA_DIR / "rasx" / "sample.rasx"
     pattern = geddes.read_bytes(path.read_bytes(), "sample.rasx")
     _assert_pattern(pattern)
@@ -74,25 +74,25 @@ def test_09_read_bytes_rasx():
     assert abs(pattern.x[0] - 10.0) < 1e-9
 
 
-def test_10_read_bytes_xrdml():
+def test_reads_xrdml_from_bytes():
     path = DATA_DIR / "xrdml" / "sample.xrdml"
     pattern = geddes.read_bytes(path.read_bytes(), "sample.xrdml")
     _assert_pattern(pattern)
 
 
-def test_11_read_bytes_xy():
+def test_reads_xy_from_bytes():
     path = DATA_DIR / "xy" / "sample.xy"
     pattern = geddes.read_bytes(path.read_bytes(), "sample.xy")
     _assert_pattern(pattern)
 
 
-def test_12_read_bytes_csv():
+def test_reads_csv_from_bytes():
     path = DATA_DIR / "csv" / "sample.csv"
     pattern = geddes.read_bytes(path.read_bytes(), "sample.csv")
     _assert_pattern(pattern)
 
 
-def test_13_bruker_raw_axis_span_is_physical():
+def test_bruker_raw_axis_span_is_physical():
     path = DATA_DIR / "bruker_raw" / "bruker4_v5converter.raw"
     pattern = geddes.read(str(path))
     assert len(pattern.x) == len(pattern.y)
@@ -107,7 +107,7 @@ def test_13_bruker_raw_axis_span_is_physical():
     ), "Bruker x axis must be strictly increasing"
 
 
-def test_14_bruker_raw_diffrac_eva_loads_with_axis():
+def test_bruker_raw_diffrac_eva_loads_with_axis():
     path = DATA_DIR / "bruker_raw" / "bruker4_diffrac_eva.raw"
     pattern = geddes.read(str(path))
     assert len(pattern.x) == len(pattern.y)
@@ -130,23 +130,23 @@ def test_14_bruker_raw_diffrac_eva_loads_with_axis():
     assert ratio < 0.05, f"Too many subnormal intensity values: ratio={ratio}"
 
 
-def test_15_pattern_new_rejects_mismatched_xy_lengths():
+def test_pattern_new_rejects_mismatched_xy_lengths():
     with pytest.raises(ValueError, match="x and y must have the same length"):
         geddes.Pattern([10.0], [100.0, 101.0], None)
 
 
-def test_16_pattern_new_rejects_mismatched_e_length():
+def test_pattern_new_rejects_mismatched_e_length():
     with pytest.raises(ValueError, match="e must have the same length as x and y"):
         geddes.Pattern([10.0, 11.0], [100.0, 101.0], [1.0])
 
 
-def test_17_pattern_new_rejects_non_ascending_x():
+def test_pattern_new_rejects_non_ascending_x():
     for x in ([20.0, 10.0], [10.0, 10.0]):
         with pytest.raises(ValueError, match="x values must be strictly increasing"):
             geddes.Pattern(x, [100.0, 101.0], None)
 
 
-def test_18_pattern_new_rejects_nan_x():
+def test_pattern_new_rejects_nan_x():
     nan = float("nan")
     for x in ([10.0, nan], [nan], [nan, 20.0]):
         y = [100.0] * len(x)
@@ -154,7 +154,7 @@ def test_18_pattern_new_rejects_nan_x():
             geddes.Pattern(x, y, None)
 
 
-def test_19_read_bytes_rejects_descending_xrdml_axis():
+def test_read_rejects_descending_xrdml_axis():
     data = b"""<?xml version="1.0" encoding="UTF-8"?>
 <xrdMeasurements xmlns="http://www.xrdml.com/XRDMeasurement/1.6">
   <xrdMeasurement>

@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 #[test]
-fn test_01_read_gsas_raw() {
+fn reads_gsas_raw_from_path() {
     let path = PathBuf::from("tests/data/gsas_raw/gsas.raw");
     let start = Instant::now();
     let pattern = read(&path).expect("Failed to load raw file");
@@ -15,7 +15,7 @@ fn test_01_read_gsas_raw() {
 }
 
 #[test]
-fn test_02_read_bruker_raw() {
+fn reads_bruker_raw_from_path() {
     let path = PathBuf::from("tests/data/bruker_raw/bruker4_v5converter.raw");
     let start = Instant::now();
     let pattern = read(&path).expect("Failed to load Bruker raw file");
@@ -26,7 +26,7 @@ fn test_02_read_bruker_raw() {
 }
 
 #[test]
-fn test_03_read_rasx() {
+fn reads_rasx_from_path() {
     let path = PathBuf::from("tests/data/rasx/sample.rasx");
     let start = Instant::now();
     let pattern = read(&path).expect("Failed to load rasx file");
@@ -43,7 +43,7 @@ fn test_03_read_rasx() {
 }
 
 #[test]
-fn test_04_read_xrdml() {
+fn reads_xrdml_from_path() {
     let path = PathBuf::from("tests/data/xrdml/sample.xrdml");
     let start = Instant::now();
     let pattern = read(&path).expect("Failed to load xrdml file");
@@ -54,7 +54,7 @@ fn test_04_read_xrdml() {
 }
 
 #[test]
-fn test_05_read_xy() {
+fn reads_xy_from_path() {
     let path = PathBuf::from("tests/data/xy/sample.xy");
     let start = Instant::now();
     let pattern = read(&path).expect("Failed to load xy file");
@@ -65,7 +65,7 @@ fn test_05_read_xy() {
 }
 
 #[test]
-fn test_06_read_csv() {
+fn reads_csv_from_path() {
     let path = PathBuf::from("tests/data/csv/sample.csv");
     let start = Instant::now();
     let pattern = read(&path).expect("Failed to load csv file");
@@ -81,7 +81,7 @@ fn test_06_read_csv() {
 }
 
 #[test]
-fn test_07_read_bytes_gsas_raw() {
+fn reads_gsas_raw_from_bytes() {
     let path = PathBuf::from("tests/data/gsas_raw/gsas.raw");
     let start = Instant::now();
     let bytes = fs_read(&path).expect("Failed to read file bytes");
@@ -92,7 +92,7 @@ fn test_07_read_bytes_gsas_raw() {
 }
 
 #[test]
-fn test_08_read_bytes_bruker_raw() {
+fn reads_bruker_raw_from_bytes() {
     let path = PathBuf::from("tests/data/bruker_raw/bruker4_v5converter.raw");
     let start = Instant::now();
     let bytes = fs_read(&path).expect("Failed to read Bruker raw bytes");
@@ -107,7 +107,7 @@ fn test_08_read_bytes_bruker_raw() {
 }
 
 #[test]
-fn test_09_read_bytes_rasx() {
+fn reads_rasx_from_bytes() {
     let path = PathBuf::from("tests/data/rasx/sample.rasx");
     let start = Instant::now();
     let bytes = fs_read(&path).expect("Failed to read file bytes");
@@ -124,7 +124,7 @@ fn test_09_read_bytes_rasx() {
 }
 
 #[test]
-fn test_10_read_bytes_xrdml() {
+fn reads_xrdml_from_bytes() {
     let path = PathBuf::from("tests/data/xrdml/sample.xrdml");
     let start = Instant::now();
     let bytes = fs_read(&path).expect("Failed to read file bytes");
@@ -136,7 +136,7 @@ fn test_10_read_bytes_xrdml() {
 }
 
 #[test]
-fn test_11_read_bytes_xy() {
+fn reads_xy_from_bytes() {
     let path = PathBuf::from("tests/data/xy/sample.xy");
     let start = Instant::now();
     let bytes = fs_read(&path).expect("Failed to read file bytes");
@@ -147,7 +147,7 @@ fn test_11_read_bytes_xy() {
 }
 
 #[test]
-fn test_12_read_bytes_csv() {
+fn reads_csv_from_bytes() {
     let path = PathBuf::from("tests/data/csv/sample.csv");
     let start = Instant::now();
     let bytes = fs_read(&path).expect("Failed to read file bytes");
@@ -163,7 +163,7 @@ fn test_12_read_bytes_csv() {
 }
 
 #[test]
-fn test_13_bruker_raw_axis_span_is_physical() {
+fn bruker_raw_axis_span_is_physical() {
     let path = PathBuf::from("tests/data/bruker_raw/bruker4_v5converter.raw");
     let pattern = read(&path).expect("Failed to load Bruker raw file");
     assert_eq!(pattern.x.len(), pattern.y.len());
@@ -183,7 +183,7 @@ fn test_13_bruker_raw_axis_span_is_physical() {
 }
 
 #[test]
-fn test_14_bruker_raw_diffrac_eva_loads_with_axis() {
+fn bruker_raw_diffrac_eva_loads_with_axis() {
     let path = PathBuf::from("tests/data/bruker_raw/bruker4_diffrac_eva.raw");
     let pattern = read(&path).expect("Expected diffrac_eva Bruker variant to load");
     assert_eq!(pattern.x.len(), pattern.y.len());
@@ -217,7 +217,7 @@ fn test_14_bruker_raw_diffrac_eva_loads_with_axis() {
 }
 
 #[test]
-fn test_15_pattern_new_rejects_mismatched_xy_lengths() {
+fn pattern_new_rejects_mismatched_xy_lengths() {
     let err = Pattern::new(vec![10.0], vec![100.0, 101.0], None)
         .expect_err("mismatched x/y lengths should be rejected");
 
@@ -230,7 +230,7 @@ fn test_15_pattern_new_rejects_mismatched_xy_lengths() {
 }
 
 #[test]
-fn test_16_pattern_new_rejects_mismatched_e_length() {
+fn pattern_new_rejects_mismatched_e_length() {
     let err = Pattern::new(
         vec![10.0, 11.0],
         vec![100.0, 101.0],
@@ -247,7 +247,7 @@ fn test_16_pattern_new_rejects_mismatched_e_length() {
 }
 
 #[test]
-fn test_17_pattern_new_rejects_non_ascending_x() {
+fn pattern_new_rejects_non_ascending_x() {
     for x in [vec![20.0, 10.0], vec![10.0, 10.0]] {
         let err = Pattern::new(x, vec![100.0, 101.0], None)
             .expect_err("non-ascending x values should be rejected");
@@ -262,7 +262,7 @@ fn test_17_pattern_new_rejects_non_ascending_x() {
 }
 
 #[test]
-fn test_18_pattern_new_rejects_nan_x() {
+fn pattern_new_rejects_nan_x() {
     let cases = [
         vec![10.0, f64::NAN],
         vec![f64::NAN],
@@ -284,7 +284,7 @@ fn test_18_pattern_new_rejects_nan_x() {
 }
 
 #[test]
-fn test_19_read_bytes_rejects_descending_xrdml_axis() {
+fn read_rejects_descending_xrdml_axis() {
     let data = br#"<?xml version="1.0" encoding="UTF-8"?>
 <xrdMeasurements xmlns="http://www.xrdml.com/XRDMeasurement/1.6">
   <xrdMeasurement>
