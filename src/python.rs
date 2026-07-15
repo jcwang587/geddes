@@ -1,4 +1,4 @@
-use crate::{read, read_reader, Pattern, Error};
+use crate::{from_reader, read, Error, Pattern};
 use pyo3::exceptions::{PyIOError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::PyBytes;
@@ -38,7 +38,7 @@ fn read_bytes(
     filename: &str,
 ) -> PyResult<Pattern> {
     let cursor = Cursor::new(data.as_bytes());
-    read_reader(cursor, filename).map_err(to_py_err)
+    from_reader(cursor, filename).map_err(to_py_err)
 }
 
 /// Python module definition for the `geddes` extension.
