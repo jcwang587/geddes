@@ -5,6 +5,8 @@ It is written in Rust, with Python and Node.js bindings.
 
 ## Quick start
 
+### Python
+
 ```sh
 pip install geddes
 ```
@@ -14,6 +16,32 @@ import geddes
 
 pattern = geddes.read("sample.xy")
 x, y = pattern.x, pattern.y
+```
+
+### Rust
+
+```sh
+cargo add geddes
+```
+
+```rust
+fn main() -> Result<(), geddes::Error> {
+    let pattern = geddes::read("sample.xy")?;
+    let (x, y) = (pattern.x, pattern.y);
+    Ok(())
+}
+```
+
+### Node.js
+
+```sh
+npm install @jcwang587/geddes
+```
+
+```javascript
+const geddes = require('@jcwang587/geddes')
+
+const { x, y } = geddes.read('sample.xy')
 ```
 
 ## Supported formats
