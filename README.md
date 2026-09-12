@@ -34,17 +34,17 @@ const { x, y } = geddes.read('sample.xy')
 
 ## Supported formats
 
-| Format | Extensions | Pattern selection |
+| Format | Extensions | Selection |
 |---|---|---|
-| ASCII columns | `.xy`, `.xye`, `.csv`, `.dat`, `.prn`, `.txt` | Single pattern |
-| GSAS STD / ESD / FXYE | `.gsas`, `.gsa`, `.fxye`, `.gda`, `.xra`, `.raw` | Bank index |
-| Bruker RAW3 / RAW4 | `.raw` | Scan index |
-| Rigaku RAS | `.ras` | Scan index |
-| Rigaku RASX | `.rasx` | Scan index |
-| Bruker/Siemens UXD | `.uxd` | Scan index |
-| Bruker BRML | `.brml` | Scan index |
-| PANalytical XRDML | `.xrdml` | Scan index |
-| FIT2D/pyFAI CHI | `.chi` | Single pattern |
+| Text | `.xy`, `.xye`, `.csv`, `.dat`, `.prn`, `.txt` | Single pattern |
+| GSAS | `.gsas`, `.gsa`, `.fxye`, `.gda`, `.xra`, `.raw` | Bank index |
+| Bruker RAW | `.raw` (v3, v4) | Scan index |
+| RAS | `.ras` | Scan index |
+| RASX | `.rasx` | Scan index |
+| UXD | `.uxd` | Scan index |
+| BRML | `.brml` | Scan index |
+| XRDML | `.xrdml` | Scan index |
+| CHI | `.chi` | Single pattern |
 | Powder CIF | `.cif` | Data-block name |
 
 See the [documentation](docs/index.md) for installation, usage, and format limits.

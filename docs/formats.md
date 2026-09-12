@@ -6,15 +6,15 @@ pattern. See [usage](reading-patterns.md#scan-and-block-selection) for examples.
 
 | Format | Common extensions | Supported variants |
 |---|---|---|
-| ASCII columns | `.xy`, `.xye`, `.csv`, `.dat`, `.prn`, `.txt` | Whitespace or comma-separated x/y; extra columns ignored |
+| Text | `.xy`, `.xye`, `.csv`, `.dat`, `.prn`, `.txt` | Whitespace or comma-separated x/y; extra columns ignored |
 | GSAS | `.gsas`, `.gsa`, `.fxye`, `.gda`, `.xra`, `.raw` | `CONS`/`CONST` with STD, ESD, or FXYE records; centidegrees converted to degrees |
 | Bruker RAW | `.raw` | RAW3 and RAW4 2theta scans |
-| Rigaku RAS | `.ras` | Text diffraction profiles |
-| Rigaku RASX | `.rasx` | Diffraction profiles, selected in the file's scan order |
-| Bruker/Siemens UXD | `.uxd` | `_COUNTS`, `_CPS`, `_2THETACOUNTS`, `_2THETACPS`; explicit positions or start/step values |
-| Bruker BRML | `.brml` | Integrated 1D profiles; uniquely identified measured data or the sole dataset within the selected scan |
-| PANalytical XRDML | `.xrdml` | Counts or intensities with a 2theta range or position list |
-| FIT2D/pyFAI CHI | `.chi` | Four-line header and x/y rows matching the declared point count |
+| RAS | `.ras` | Text diffraction profiles |
+| RASX | `.rasx` | Diffraction profiles, selected in the file's scan order |
+| UXD | `.uxd` | `_COUNTS`, `_CPS`, `_2THETACOUNTS`, `_2THETACPS`; explicit positions or start/step values |
+| BRML | `.brml` | Integrated 1D profiles; uniquely identified measured data or the sole dataset within the selected scan |
+| XRDML | `.xrdml` | Counts or intensities with a 2theta range or position list |
+| CHI | `.chi` | Four-line header and x/y rows matching the declared point count |
 | Powder CIF | `.cif` | Measured powder profiles; corrected 2theta and processed total intensity take precedence when present |
 
 Geddes checks content before using the filename as a hint, distinguishing GSAS
