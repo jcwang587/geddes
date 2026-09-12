@@ -35,10 +35,28 @@ jobs:
       - name: Install documentation dependencies
         run: python -m pip install -r requirements-docs.txt
       - name: Build documentation
-        run: zensical build --strict
+        run: zensical build --clean --strict
       - name: Upload generated site
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-pages-artifact@v5
         with:
-          name: geddes-docs
           path: site/
-          if-no-files-found: error
+
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    steps:
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
+      - name: Deploy documentation
+        id: deployment
+        uses: actions/deploy-pages@v5

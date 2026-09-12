@@ -4,6 +4,7 @@
   "description": "Node.js bindings for geddes (Rust XRD parser)",
   "main": "index.js",
   "types": "index.d.ts",
+  "homepage": "https://jcwang587.github.io/geddes/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jcwang587/geddes.git"

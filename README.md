@@ -47,4 +47,4 @@ const { x, y } = geddes.read('sample.xy')
 | CHI | `.chi` | Single pattern |
 | Powder CIF | `.cif` | Data-block name |
 
-See the [documentation](docs/index.md) for installation, usage, and format limits.
+See the [documentation](https://jcwang587.github.io/geddes/) for installation, usage, and format limits.
