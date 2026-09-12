@@ -45,6 +45,7 @@ fn one_pattern(options: &ReadOptions) -> Result<(), Error> {
     Ok(())
 }
 
+/// Detect XRDML by the root element's local name, ignoring namespace prefixes.
 fn has_xrdml_root(content: &str) -> bool {
     if !content.trim_start().starts_with('<') {
         return false;

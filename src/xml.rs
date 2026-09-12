@@ -51,6 +51,7 @@ fn unescape(value: &str) -> Result<String, Error> {
         .map_err(|e| error(format!("XML entity: {e}")))
 }
 
+/// Create a node with local names and normalized, unescaped attribute values.
 fn element(start: &BytesStart<'_>) -> Result<Element, Error> {
     let mut node = Element {
         name: start.local_name().as_ref().to_owned(),
@@ -73,6 +74,9 @@ fn element(start: &BytesStart<'_>) -> Result<Element, Error> {
     Ok(node)
 }
 
+/// Decode vendor XML into a single element tree.
+///
+/// Resolve references once, preserve CDATA literally, and reject DTDs.
 fn document(bytes: &[u8]) -> Result<Element, Error> {
     let text = decode(bytes)?;
     let mut reader = Reader::from_str(&text);
