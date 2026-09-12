@@ -1,0 +1,42 @@
+name: Check Rust package
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  checked-crate:
+    name: Rust crate (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check package versions and tag
+        id: version
+        run: python tests/check_release_version.py
+      - name: Test release version validation
+        run: python -m unittest discover -s tests -p release_version_cases.py
+      - name: Test repository sources
+        run: cargo test --locked
+      - name: Package and verify the distributable crate
+        run: cargo package --locked
+      - name: Test the unpacked distributable crate
+        working-directory: target/package/geddes-${{ steps.version.outputs.version }}
+        run: cargo test --locked
+      - name: Retain the checked crate
+        uses: actions/upload-artifact@v7
+        with:
+          name: checked-rust-crate-${{ matrix.os }}
+          path: target/package/*.crate
+          if-no-files-found: error
+          retention-days: 7

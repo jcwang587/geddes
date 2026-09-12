@@ -4,9 +4,12 @@ export interface Pattern {
   x: Array<number>
   y: Array<number>
 }
+
+export declare function read(path: string, options?: ReadOptions | undefined | null): Pattern
+
+export declare function readBytes(data: Buffer, filename: string, options?: ReadOptions | undefined | null): Pattern
+
 export interface ReadOptions {
   scan?: number
   block?: string
 }
-export declare function read(path: string, options?: ReadOptions): Pattern
-export declare function readBytes(data: Buffer, filename: string, options?: ReadOptions): Pattern

@@ -31,6 +31,9 @@
     "access": "public"
   },
   "scripts": {
+    "pack:release": "node ./scripts/pack-release.mjs",
+    "check:package": "node ./scripts/check-package.cjs",
+    "publish:packages": "node ./scripts/publish-packages.mjs",
     "sync:version": "node ./scripts/sync-version.mjs",
     "prepare:release": "cargo check --manifest-path ../Cargo.toml && cargo check --manifest-path ./Cargo.toml && npm run sync:version",
     "artifacts": "napi create-npm-dirs && napi artifacts --output-dir .",

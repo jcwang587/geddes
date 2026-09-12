@@ -60,7 +60,7 @@ function updatePackageVersionInCargoToml(content, nextVersion) {
     throw new Error("Could not update [package].version in node/Cargo.toml");
   }
 
-  return `${lines.join("\n")}\n`;
+  return `${lines.join("\n").trimEnd()}\n`;
 }
 
 const rootCargoToml = readFileSync(rootCargoTomlPath, "utf8");

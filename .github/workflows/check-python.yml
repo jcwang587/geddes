@@ -1,0 +1,82 @@
+name: check Python packages
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    name: Package version agreement
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Check package and tag versions
+        run: python tests/check_release_version.py
+
+  wheels:
+    name: Wheel / ${{ matrix.os }} / Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    needs: version
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Build manylinux wheel
+        if: matrix.os == 'ubuntu-latest'
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: --release --locked --out dist -i python${{ matrix.python-version }}
+          manylinux: auto
+      - name: Build wheel
+        if: matrix.os != 'ubuntu-latest'
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: --release --locked --out dist -i python
+      - name: Install and test the built wheel
+        run: python tests/check_python_package.py --dist-dir dist --kind wheel
+      - name: Upload checked wheel
+        uses: actions/upload-artifact@v7
+        with:
+          name: checked-python-wheel-${{ matrix.os }}-${{ matrix.python-version }}
+          path: dist/*.whl
+          if-no-files-found: error
+
+  sdist:
+    name: Source distribution / Python 3.12
+    runs-on: ubuntu-latest
+    needs: version
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Build source distribution
+        uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist
+      - name: Build, install, and test the source distribution
+        run: python tests/check_python_package.py --dist-dir dist --kind sdist
+      - name: Upload checked source distribution
+        uses: actions/upload-artifact@v7
+        with:
+          name: checked-python-sdist
+          path: dist/*.tar.gz
+          if-no-files-found: error

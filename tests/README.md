@@ -57,6 +57,36 @@ GEDDES_BINDING=/absolute/path/to/geddes.node node node/test.cjs
 The Node API returns `{ x, y }`. Both `read` and `readBytes` accept an optional
 `{ scan, block }` selection object; examples are in the [main README](../README.md).
 
+## Release packages
+
+The [package checks](../.github/workflows/check-packages.yml) run on pushes and
+pull requests to `main` and `dev`, and before release tagging.
+
+| Package | Installation checks |
+|---|---|
+| Rust | Package, compile, and test the unpacked crate on Linux, macOS, and Windows |
+| Python | Install wheels on all three systems with Python 3.10–3.14; also build and install the source distribution |
+| Node.js | Install npm tarballs on all six supported OS/architecture targets with Node 16 and 24; Windows ARM64 uses Node 20 and 24 |
+
+Python and Node checks use fresh environments outside the checkout and run the
+complete fixture suite. Node installations use the packaged JavaScript loader
+and platform dependency, with registry access disabled. Release checks also
+verify package versions, selection and error behavior, and distribution metadata.
+Publishing waits for these checks; PyPI and npm receive the tested archives.
+
+To check a locally built Python distribution:
+
+```sh
+python tests/check_python_package.py --dist-dir /path/to/dist --kind wheel
+python tests/check_python_package.py --dist-dir /path/to/dist --kind sdist
+```
+
+To check the Node tarballs downloaded from a `node-packages` workflow artifact:
+
+```sh
+npm --prefix node run check:package -- /path/to/node-packages
+```
+
 ## Rebuilding reference data
 
 [build_fixture_corpus.py](build_fixture_corpus.py) is a development tool, not a
