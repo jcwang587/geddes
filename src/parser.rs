@@ -1,4 +1,5 @@
 use crate::{bruker, text, xml, Error, ReadOptions};
+use quick_xml::{events::Event, Reader};
 use std::borrow::Cow;
 use std::io::Cursor;
 use std::path::Path;
@@ -44,6 +45,23 @@ fn one_scan(options: &ReadOptions) -> Result<(), Error> {
     Ok(())
 }
 
+fn has_xrdml_root(content: &str) -> bool {
+    if !content.trim_start().starts_with('<') {
+        return false;
+    }
+    let mut reader = Reader::from_str(content);
+    loop {
+        match reader.read_event() {
+            Ok(Event::Start(root) | Event::Empty(root)) => {
+                return root.local_name().as_ref() == b"xrdMeasurements";
+            }
+            Ok(Event::Decl(_) | Event::PI(_) | Event::Comment(_) | Event::DocType(_)) => {}
+            Ok(Event::Text(text)) if text.iter().all(u8::is_ascii_whitespace) => {}
+            _ => return false,
+        }
+    }
+}
+
 pub(crate) fn parse(
     bytes: &[u8],
     filename: &str,
@@ -87,7 +105,7 @@ pub(crate) fn parse(
         return Err(Error::UnknownFormat);
     }
     // All strong content recognizers run before extension fallbacks.
-    if head.contains("<xrdMeasurements") || head.contains(":xrdMeasurements") {
+    if has_xrdml_root(&content) {
         return xml::parse_xrdml(bytes, options.scan);
     }
     if head.lines().any(|l| {
@@ -126,6 +144,7 @@ pub(crate) fn parse(
             let fields: Vec<_> = lines[3].split_whitespace().collect();
             !fields.is_empty()
                 && fields.len() <= 2
+                && (fields.len() == 1 || fields[1] == "1")
                 && fields.iter().all(|v| v.parse::<usize>().is_ok())
                 && fields[0].parse::<usize>().ok()
                     == Some(

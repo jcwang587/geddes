@@ -90,6 +90,24 @@ fn xrdml_supports_position_layouts_namespaces_entities_cdata_and_bom() {
 }
 
 #[test]
+fn xrdml_accepts_escaped_ampersands_in_attributes() {
+    for description in [
+        "Research &amp; Development",
+        "Research &#38; Development",
+        "Research &#x26; Development",
+        "Literal &amp;custom; reference",
+    ] {
+        let source = xrdml(&xrdml_scan("&#71;onio", RANGE, "<counts>1 2</counts>")).replace(
+            "<xrdMeasurements>",
+            &format!("<xrdMeasurements description=\"{description}\">"),
+        );
+        let p = read_bytes(source, "attributes.xrdml").unwrap();
+        assert_eq!(p.x, [10., 11.]);
+        assert_eq!(p.y, [1., 2.]);
+    }
+}
+
+#[test]
 fn xrdml_selects_scans_across_measurements_without_merging() {
     let first = xrdml_scan("Gonio", RANGE, "<counts>1 2</counts>");
     let second = xrdml_scan("Gonio", RANGE, "<intensities>30 40</intensities>");
@@ -171,6 +189,22 @@ fn rasx_follows_manifest_order_and_reads_only_the_selected_profile() {
         }
     )
     .is_err());
+}
+
+#[test]
+fn rasx_decodes_manifest_attributes_exactly_once() {
+    for (encoded_name, member_name) in [
+        ("Profile&amp;amp;.txt", "Data0/Profile&amp;.txt"),
+        ("Profile&amp;#49;.txt", "Data0/Profile&#49;.txt"),
+        ("Profile&amp;.txt", "Data0/Profile&.txt"),
+    ] {
+        let root =
+            format!("<Root><Data0><ContentHashList Name=\"{encoded_name}\"/></Data0></Root>");
+        let bytes = archive(&[("root.xml", &root), (member_name, "10 4\n11 5\n")]);
+        let p = read_bytes(bytes, "attributes.rasx").unwrap();
+        assert_eq!(p.x, [10., 11.]);
+        assert_eq!(p.y, [4., 5.]);
+    }
 }
 
 #[test]

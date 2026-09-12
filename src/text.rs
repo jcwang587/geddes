@@ -616,6 +616,44 @@ fn cif_column(block: &CifBlock, alternatives: &[&str]) -> Option<Vec<String>> {
         .find_map(|tag| block.columns.get(*tag).filter(|c| !c.is_empty()).cloned())
 }
 
+fn cif_2theta_axis(block: &CifBlock, point_count: usize) -> Result<Option<Vec<f64>>, Error> {
+    // Corrected angles take precedence, whether explicit or evenly spaced.
+    // Range increments are scalar spacing metadata, never angle columns.
+    for (column, prefix) in [
+        ("_pd_proc_2theta_corrected", "_pd_proc_2theta_range"),
+        ("_pd_meas_2theta_scan", "_pd_meas_2theta_range"),
+    ] {
+        if let Some(col) = cif_column(block, &[column]) {
+            return col
+                .iter()
+                .map(|s| cif_number(s))
+                .collect::<Result<Vec<_>, _>>()
+                .map(Some);
+        }
+        if let (Some(start), Some(step)) = (
+            block.scalars.get(&format!("{prefix}_min")),
+            block.scalars.get(&format!("{prefix}_inc")),
+        ) {
+            let start = cif_number(start)?;
+            let step = cif_number(step)?;
+            if step <= 0.0 {
+                return Err(invalid("pdCIF: 2theta increment must be positive"));
+            }
+            let x: Vec<f64> = (0..point_count).map(|j| start + j as f64 * step).collect();
+            if let Some(end) = block.scalars.get(&format!("{prefix}_max")) {
+                let end = cif_number(end)?;
+                if x.last()
+                    .is_some_and(|last| (last - end).abs() > step.abs() * 1e-6 + 1e-8)
+                {
+                    return Err(invalid("pdCIF: angular range disagrees with point count"));
+                }
+            }
+            return Ok(Some(x));
+        }
+    }
+    Ok(None)
+}
+
 pub(crate) fn parse_pdcif(bytes: &[u8], selection: Option<&str>) -> Result<ParsedPattern, Error> {
     let text = decode(bytes)?;
     let tokens = cif_tokens(&text)?;
@@ -694,37 +732,7 @@ pub(crate) fn parse_pdcif(bytes: &[u8], selection: Option<&str>) -> Result<Parse
             continue;
         };
         let y: Vec<f64> = y.iter().map(|s| cif_number(s)).collect::<Result<_, _>>()?;
-        let x = if let Some(col) = cif_column(
-            &block,
-            &[
-                "_pd_proc_2theta_corrected",
-                "_pd_meas_2theta_scan",
-                "_pd_meas_2theta_range_inc",
-            ],
-        ) {
-            col.iter()
-                .map(|s| cif_number(s))
-                .collect::<Result<Vec<_>, _>>()?
-        } else if let (Some(start), Some(step)) = (
-            block.scalars.get("_pd_meas_2theta_range_min"),
-            block.scalars.get("_pd_meas_2theta_range_inc"),
-        ) {
-            let start = cif_number(start)?;
-            let step = cif_number(step)?;
-            if step <= 0.0 {
-                return Err(invalid("pdCIF: 2theta increment must be positive"));
-            }
-            let x: Vec<f64> = (0..y.len()).map(|j| start + j as f64 * step).collect();
-            if let Some(end) = block.scalars.get("_pd_meas_2theta_range_max") {
-                let end = cif_number(end)?;
-                if x.last()
-                    .is_some_and(|last| (last - end).abs() > step.abs() * 1e-6 + 1e-8)
-                {
-                    return Err(invalid("pdCIF: angular range disagrees with point count"));
-                }
-            }
-            x
-        } else {
+        let Some(x) = cif_2theta_axis(&block, y.len())? else {
             continue;
         };
         if x.len() != y.len() {
@@ -735,6 +743,6 @@ pub(crate) fn parse_pdcif(bytes: &[u8], selection: Option<&str>) -> Result<Parse
         return pattern(x, y, "pdCIF");
     }
     Err(invalid(
-        "pdCIF: no matching block with measured 2theta and intensity data",
+        "pdCIF: no matching block with 2theta and intensity data",
     ))
 }

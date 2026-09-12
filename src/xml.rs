@@ -66,7 +66,7 @@ fn element(start: &BytesStart<'_>) -> Result<Element, Error> {
         let value = attr
             .normalized_value(XmlVersion::Implicit1_0)
             .map_err(|e| error(format!("XML attribute: {e}")))?;
-        node.attrs.push((key, unescape(&value)?));
+        node.attrs.push((key, value.into_owned()));
     }
     Ok(node)
 }

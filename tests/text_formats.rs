@@ -438,6 +438,52 @@ fn pdcif_scalar_angular_range_builds_axis_for_counts_loop() {
 }
 
 #[test]
+fn pdcif_processed_angular_range_builds_axis_for_intensity_loop() {
+    for max in ["", "_pd_proc_2theta_range_max 11\n"] {
+        let text = format!(
+            "data_profile\n_pd_proc_2theta_range_min 10\n{max}_pd_proc_2theta_range_inc .5\nloop_\n_pd_proc_intensity_total\n4 9 16\n"
+        );
+        assert_xy(
+            text.as_bytes(),
+            "pattern.cif",
+            &[10.0, 10.5, 11.0],
+            &[4.0, 9.0, 16.0],
+        );
+    }
+}
+
+#[test]
+fn pdcif_processed_range_takes_priority_over_uncorrected_angles() {
+    let text = b"data_profile\n_pd_proc_2theta_range_min 10\n_pd_proc_2theta_range_max 11\n_pd_proc_2theta_range_inc .5\n_pd_meas_2theta_range_min 10.1\n_pd_meas_2theta_range_max 11.1\n_pd_meas_2theta_range_inc .5\nloop_\n_pd_meas_2theta_scan\n_pd_proc_intensity_total\n10.1 4\n10.6 9\n11.1 16\n";
+    assert_xy(text, "pattern.cif", &[10.0, 10.5, 11.0], &[4.0, 9.0, 16.0]);
+}
+
+#[test]
+fn pdcif_range_increment_is_not_an_angle_column() {
+    // One point is a valid profile, but an increment alone cannot locate it.
+    let text = b"data_profile\nloop_\n_pd_meas_2theta_range_inc\n_pd_meas_counts_total\n.5 4\n";
+    assert!(read_bytes(text, "pattern.cif").is_err());
+}
+
+#[test]
+fn pdcif_ranges_reject_nonpositive_steps_and_inconsistent_endpoints() {
+    for prefix in ["_pd_meas", "_pd_proc"] {
+        for (step, max) in [("0", "10"), ("-.5", "9"), (".5", "12")] {
+            let text = format!(
+                "data_profile\n{prefix}_2theta_range_min 10\n{prefix}_2theta_range_max {max}\n{prefix}_2theta_range_inc {step}\nloop_\n_pd_meas_counts_total\n4 9 16\n"
+            );
+            let err = read_bytes(text, "pattern.cif").unwrap_err().to_string();
+            let expected = if step == ".5" {
+                "angular range disagrees with point count"
+            } else {
+                "2theta increment must be positive"
+            };
+            assert!(err.contains(expected), "{prefix} {step}: {err}");
+        }
+    }
+}
+
+#[test]
 fn pdcif_rejects_incomplete_loops_missing_values_and_structure_only_cif() {
     for text in [
         "data_profile\nloop_\n_pd_meas_2theta_scan\n_pd_meas_counts_total\n10 4 11\n",
