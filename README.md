@@ -1,12 +1,20 @@
 # Geddes
 
-[![Crates.io](https://img.shields.io/crates/v/geddes)](https://crates.io/crates/geddes)
-[![PyPI](https://img.shields.io/pypi/v/geddes)](https://pypi.org/project/geddes/)
-[![npm](https://img.shields.io/npm/v/%40jcwang587%2Fgeddes)](https://www.npmjs.com/package/@jcwang587/geddes)
+Geddes reads XRD files into two arrays: `x` (2θ in degrees) and `y` (intensity).
+It is written in Rust, with Python and Node.js bindings.
 
-Geddes reads XRD patterns into two arrays: **`x` is 2θ in degrees and `y` is intensity**.
-It is written in Rust, with Python and Node.js bindings. Read from a file or bytes,
-and select one pattern from files containing multiple scans or data blocks.
+## Quick start
+
+```sh
+pip install geddes
+```
+
+```python
+import geddes
+
+pattern = geddes.read("sample.xy")
+x, y = pattern.x, pattern.y
+```
 
 ## Supported formats
 
@@ -23,31 +31,8 @@ and select one pattern from files containing multiple scans or data blocks.
 | FIT2D/pyFAI CHI | `.chi` | Single pattern |
 | Powder CIF | `.cif` | Data-block name |
 
-Returns x/y only, with finite values and an increasing 2θ axis. See the
-[format guide](docs/formats.md) for supported layouts and the
-[reading guide](docs/reading-patterns.md) for selection, intensity units, and validation.
-
-## Quick start
-
-```sh
-pip install geddes
-```
-
-```python
-import geddes
-
-pattern = geddes.read("sample.xrdml")
-x, y = pattern.x, pattern.y
-```
-
-## Documentation
-
-Start with the [documentation](docs/index.md) for
-[Python, Rust, and Node.js installation](docs/index.md),
-[API reference](docs/api.md), and
-[usage](docs/reading-patterns.md).
+See the [documentation](docs/index.md) for installation, usage, and format limits.
 
 ## License
 
-[MIT](LICENSE). Imported test files retain their upstream terms; see
-[fixture provenance](tests/data/formats/README.md).
+MIT. Imported test data retain their original licenses.
