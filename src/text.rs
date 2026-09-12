@@ -433,8 +433,8 @@ pub(crate) fn parse_uxd(bytes: &[u8], scan: usize) -> Result<ParsedPattern, Erro
                 .get("STEPSIZE")
                 .ok_or_else(|| invalid("UXD: missing _STEPSIZE for counts-only data"))?,
         )?;
-        if step <= 0.0 {
-            return Err(invalid("UXD: _STEPSIZE must be positive"));
+        if step == 0.0 {
+            return Err(invalid("UXD: _STEPSIZE must be nonzero"));
         }
         x = (0..y.len()).map(|i| start + i as f64 * step).collect();
     }

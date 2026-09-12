@@ -118,7 +118,7 @@ license files when updating the corpus.
 
 ## Benchmarking
 
-Use the sibling [geddes-test repository](../../geddes-test/README.md), which
+Use the separate `geddes-test` repository, which
 consumes this manifest. Build Geddes in release mode for timed comparisons.
 The benchmark validates full arrays before measuring file loading and reports
 unsupported or numerically different results separately. It does not discard

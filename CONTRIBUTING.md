@@ -82,9 +82,7 @@ updating the corpus.
 
 ## Measure loading performance
 
-The separate [geddes-test repository](https://github.com/jcwang587/geddes-test)
-consumes the same manifest. Its
-[benchmark guide](https://github.com/jcwang587/geddes-test/blob/main/README.md)
+The separate `geddes-test` repository consumes the same manifest. Its README
 describes environment setup and report reproduction. Build Geddes in release
 mode before timing it.
 

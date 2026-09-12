@@ -307,6 +307,56 @@ fn uxd_all_four_markers_preserve_stored_intensity() {
 }
 
 #[test]
+fn uxd_counts_only_descending_steps_reverse_paired_values() {
+    for (marker, values, expected) in [
+        ("_COUNTS", "9 25 49", [49.0, 25.0, 9.0]),
+        ("_CPS", "0.9 2.5 4.9", [4.9, 2.5, 0.9]),
+    ] {
+        let text = format!(
+            "_FILEVERSION=2\n_DRIVE='2THETA'\n_START=20.5\n_STEPSIZE=-0.25\n_STEPTIME=10\n{marker}\n{values}\n"
+        );
+        assert_xy(
+            text.as_bytes(),
+            "descending.uxd",
+            &[20.0, 20.25, 20.5],
+            &expected,
+        );
+    }
+}
+
+#[test]
+fn uxd_selects_descending_range_with_its_own_start_and_step() {
+    let bytes = b"_FILEVERSION=2\n_DRIVE='COUPLED'\n_START=10\n_STEPSIZE=0.5\n_COUNTS\n4 9\n_START=20.5\n_STEPSIZE=-0.25\n_CPS\n9.5 25.5 49.5\n_START=30\n_STEPSIZE=0.1\n_COUNTS\n1 2\n";
+    assert_xy(bytes, "ranges.uxd", &[10.0, 10.5], &[4.0, 9.0]);
+    let pattern = read_bytes_with_options(
+        bytes,
+        "ranges.uxd",
+        &ReadOptions {
+            scan: 1,
+            block: None,
+        },
+    )
+    .unwrap();
+    assert_eq!(pattern.x, [20.0, 20.25, 20.5]);
+    assert_eq!(pattern.y, [49.5, 25.5, 9.5]);
+}
+
+#[test]
+fn uxd_counts_only_rejects_zero_and_nonfinite_steps() {
+    for marker in ["_COUNTS", "_CPS"] {
+        for step in ["0", "-0", "NaN", "inf", "-inf"] {
+            let text = format!(
+                "_FILEVERSION=2\n_DRIVE='2THETA'\n_START=20.5\n_STEPSIZE={step}\n{marker}\n9 25 49\n"
+            );
+            assert!(
+                read_bytes(text, "invalid-step.uxd").is_err(),
+                "{marker}: {step}"
+            );
+        }
+    }
+}
+
+#[test]
 fn uxd_rejects_non_diffraction_axes_and_missing_counts_axis() {
     for text in [
         "_FILEVERSION=2\n_DRIVE='THETA'\n_2THETACOUNTS\n10 4\n11 9\n",

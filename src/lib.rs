@@ -29,6 +29,8 @@ pub struct Pattern {
 }
 
 impl Pattern {
+    /// Construct a nonempty pattern with equal array lengths, finite values,
+    /// and strictly increasing x. Returns a parse error if validation fails.
     pub fn new(x: Vec<f64>, y: Vec<f64>) -> Result<Self, Error> {
         if x.len() != y.len() {
             return Err(Error::Parse("x and y must have the same length".into()));
@@ -75,6 +77,7 @@ pub fn read<P: AsRef<Path>>(path: P) -> Result<Pattern, Error> {
     read_with_options(path, &ReadOptions::default())
 }
 
+/// Load one selected scan or powder CIF block from a file.
 pub fn read_with_options<P: AsRef<Path>>(path: P, options: &ReadOptions) -> Result<Pattern, Error> {
     let path = path.as_ref();
     let bytes = std::fs::read(path)?;
@@ -86,6 +89,8 @@ pub fn from_reader<R: Read + Seek>(reader: R, filename: &str) -> Result<Pattern,
     from_reader_with_options(reader, filename, &ReadOptions::default())
 }
 
+/// Load one selected pattern from a stream's current position to its end.
+/// `filename` is a format hint and is not opened.
 pub fn from_reader_with_options<R: Read + Seek>(
     mut reader: R,
     filename: &str,
@@ -101,6 +106,8 @@ pub fn read_bytes<B: AsRef<[u8]>>(bytes: B, filename: &str) -> Result<Pattern, E
     read_bytes_with_options(bytes, filename, &ReadOptions::default())
 }
 
+/// Load one selected pattern from complete file bytes, using `filename` as a
+/// format hint. Strictly descending positions and intensities are reversed together.
 pub fn read_bytes_with_options<B: AsRef<[u8]>>(
     bytes: B,
     filename: &str,

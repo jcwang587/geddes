@@ -69,7 +69,7 @@ Geddes or Rietx reader. Reference intensities follow Geddes's defined contract:
 native units, XRDML raw-count attenuation correction, no extra correction to
 BRML or processed XRDML intensities, and no uncertainty-based row filtering.
 
-See the [test guide](../../README.md) for regeneration commands and the sibling
-[geddes-test benchmark](../../../../geddes-test/README.md) for timing methodology.
+See the [test guide](../../README.md) for regeneration commands and the separate
+`geddes-test` repository for timing methodology.
 The benchmark validates full arrays before timing and excludes numerical or
 selection mismatches from speed comparisons.
