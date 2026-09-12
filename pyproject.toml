@@ -17,6 +17,10 @@ classifiers = [
 ]
 dynamic = ["version"]
 
+[project.urls]
+Documentation = "https://jcwang587.github.io/geddes/"
+Repository = "https://github.com/jcwang587/geddes"
+
 [project.optional-dependencies]
 test = ["pytest>=7"]
 

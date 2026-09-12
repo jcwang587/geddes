@@ -3,9 +3,13 @@
 export interface Pattern {
   x: Array<number>
   y: Array<number>
-  e?: Array<number>
 }
 
-export declare function read(path: string): Pattern
+export declare function read(path: string, options?: ReadOptions | undefined | null): Pattern
 
-export declare function readBytes(data: Buffer, filename: string): Pattern
+export declare function readBytes(data: Buffer, filename: string, options?: ReadOptions | undefined | null): Pattern
+
+export interface ReadOptions {
+  index?: number
+  block?: string
+}

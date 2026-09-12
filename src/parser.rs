@@ -1,726 +1,208 @@
-use crate::error::Error;
-use quick_xml::events::Event;
-use quick_xml::{Reader, XmlVersion};
-use std::collections::HashSet;
-use std::io::{BufRead, BufReader, Read, Seek};
-use zip::ZipArchive;
+use crate::{bruker, text, xml, Error, ReadOptions};
+use quick_xml::{events::Event, Reader};
+use std::borrow::Cow;
+use std::io::Cursor;
+use std::path::Path;
 
-/// Intermediate structure to hold parsed data before converting to the public Pattern struct.
 #[derive(Debug)]
 pub(crate) struct ParsedPattern {
     pub x: Vec<f64>,
     pub y: Vec<f64>,
-    pub e: Option<Vec<f64>>,
 }
 
-/// Helper to parse x, y, and optional e from string parts.
-fn parse_columns(parts: &[&str], x: &mut Vec<f64>, y: &mut Vec<f64>, e: &mut Vec<f64>) {
-    if parts.len() >= 2 {
-        if let (Ok(val_x), Ok(val_y)) = (parts[0].parse::<f64>(), parts[1].parse::<f64>()) {
-            x.push(val_x);
-            y.push(val_y);
-            if parts.len() >= 3 {
-                if let Ok(val_e) = parts[2].parse::<f64>() {
-                    e.push(val_e);
+/// Decode vendor text, including Windows UTF-16 exports identified by a BOM.
+pub(crate) fn decode(bytes: &[u8]) -> Result<Cow<'_, str>, Error> {
+    if bytes.starts_with(b"\xff\xfe") || bytes.starts_with(b"\xfe\xff") {
+        if !bytes.len().is_multiple_of(2) {
+            return Err(Error::Parse("truncated UTF-16 text".into()));
+        }
+        let little = bytes[0] == 0xff;
+        let words: Vec<u16> = bytes[2..]
+            .chunks_exact(2)
+            .map(|v| {
+                if little {
+                    u16::from_le_bytes([v[0], v[1]])
+                } else {
+                    u16::from_be_bytes([v[0], v[1]])
                 }
-            }
-        }
-    }
-}
-
-/// Parses standard XY files (two or three columns: x, y, [e]).
-///
-/// Ignores lines starting with '#' or '!'.
-pub(crate) fn parse_xy<R: Read>(reader: R) -> Result<ParsedPattern, Error> {
-    let reader = BufReader::new(reader);
-    let mut x = Vec::new();
-    let mut y = Vec::new();
-    let mut e = Vec::new();
-
-    for line in reader.lines() {
-        let line = line?;
-        let line = line.trim();
-        if line.is_empty() || line.starts_with('#') || line.starts_with('!') {
-            continue;
-        }
-        let parts: Vec<&str> = line.split_whitespace().collect();
-        parse_columns(&parts, &mut x, &mut y, &mut e);
-    }
-
-    let has_error = !e.is_empty() && e.len() == x.len();
-    Ok(ParsedPattern {
-        x,
-        y,
-        e: if has_error { Some(e) } else { None },
-    })
-}
-
-/// Parses CSV files.
-///
-/// Supports comma or whitespace as delimiters.
-pub(crate) fn parse_csv<R: Read>(reader: R) -> Result<ParsedPattern, Error> {
-    let reader = BufReader::new(reader);
-    let mut x = Vec::new();
-    let mut y = Vec::new();
-    let mut e = Vec::new();
-
-    for line in reader.lines() {
-        let line = line?;
-        let line = line.trim();
-        if line.is_empty() || line.starts_with('#') || line.starts_with('!') {
-            continue;
-        }
-        // Support both comma-separated and whitespace-separated CSV-like files.
-        let parts: Vec<&str> = line
-            .split(|c: char| c == ',' || c.is_whitespace())
-            .map(|p| p.trim())
-            .filter(|p| !p.is_empty())
+            })
             .collect();
-        parse_columns(&parts, &mut x, &mut y, &mut e);
+        return String::from_utf16(&words)
+            .map(Cow::Owned)
+            .map_err(|_| Error::Parse("invalid UTF-16 text".into()));
     }
-
-    let has_error = !e.is_empty() && e.len() == x.len();
-    Ok(ParsedPattern {
-        x,
-        y,
-        e: if has_error { Some(e) } else { None },
-    })
+    let bytes = bytes.strip_prefix(b"\xef\xbb\xbf").unwrap_or(bytes);
+    // Legacy headers may contain non-UTF8 names; numeric data are ASCII.
+    Ok(String::from_utf8_lossy(bytes))
 }
 
-/// Parses Rigaku RASX files (zipped XML/text format).
-///
-/// Looks for a `Profile*.txt` file inside the archive.
-pub(crate) fn parse_rasx<R: Read + Seek>(reader: R) -> Result<ParsedPattern, Error> {
-    let mut archive = ZipArchive::new(reader)?;
-
-    let names: Vec<String> = (0..archive.len())
-        .filter_map(|i| archive.by_index(i).ok().map(|f| f.name().to_string()))
-        .collect();
-
-    // Prioritize Data0/Profile0.txt, or find any Profile*.txt
-    let profile_name = names
-        .iter()
-        .find(|n| n.as_str() == "Data0/Profile0.txt")
-        .or_else(|| {
-            names
-                .iter()
-                .find(|n| n.contains("Profile") && n.ends_with(".txt"))
-        })
-        .ok_or_else(|| Error::FileNotFoundInArchive("Profile*.txt".to_string()))?;
-
-    let file = archive.by_name(profile_name)?;
-    let reader = BufReader::new(file);
-
-    let mut x = Vec::new();
-    let mut y = Vec::new();
-
-    for line in reader.lines() {
-        let line = line?;
-        // Some RASX exports include a UTF-8 BOM at the beginning of Profile0.txt.
-        // Strip it so the first x value parses instead of being silently skipped.
-        let line = line.trim().trim_start_matches('\u{feff}');
-        if line.is_empty() {
-            continue;
-        }
-        let parts: Vec<&str> = line.split_whitespace().collect();
-        if parts.len() >= 2 {
-            if let (Ok(val_x), Ok(val_y)) = (parts[0].parse::<f64>(), parts[1].parse::<f64>()) {
-                x.push(val_x);
-                y.push(val_y);
-            }
-        }
+fn one_pattern(options: &ReadOptions) -> Result<(), Error> {
+    if options.index != 0 {
+        return Err(Error::Parse(
+            "this format has one pattern; index must be 0".into(),
+        ));
     }
-    Ok(ParsedPattern { x, y, e: None })
+    Ok(())
 }
 
-/// Parses Panalytical XRDML files (XML-based).
-///
-/// Extracts the 2Theta start/end positions and the intensities list.
-pub(crate) fn parse_xrdml<R: Read>(reader: R) -> Result<ParsedPattern, Error> {
-    let reader = BufReader::new(reader);
-    let mut xml = Reader::from_reader(reader);
-    xml.config_mut().trim_text(true);
-
-    let mut buf = Vec::new();
-    let mut intensities = Vec::new();
-    let mut in_intensities = false;
-    let mut in_positions_2theta = false;
-    let mut capture_start = false;
-    let mut capture_end = false;
-    let mut start_pos: Option<f64> = None;
-    let mut end_pos: Option<f64> = None;
-
+fn has_xrdml_root(content: &str) -> bool {
+    if !content.trim_start().starts_with('<') {
+        return false;
+    }
+    let mut reader = Reader::from_str(content);
     loop {
-        match xml.read_event_into(&mut buf) {
-            Ok(Event::Start(e)) => match e.local_name().as_ref() {
-                b"positions" => {
-                    in_positions_2theta = false;
-                    for attr in e.attributes() {
-                        let attr = attr.map_err(|err| {
-                            Error::Parse(format!("XRDML attribute error: {err}"))
-                        })?;
-                        if attr.key.as_ref() == b"axis" {
-                            let axis = attr
-                                .normalized_value(XmlVersion::Implicit1_0)
-                                .map_err(|err| {
-                                    Error::Parse(format!(
-                                        "XRDML attribute decode error: {err}"
-                                    ))
-                                })?
-                                .into_owned();
-                            if axis == "2Theta" {
-                                in_positions_2theta = true;
-                            }
-                        }
-                    }
-                }
-                b"startPosition" => {
-                    if in_positions_2theta {
-                        capture_start = true;
-                    }
-                }
-                b"endPosition" => {
-                    if in_positions_2theta {
-                        capture_end = true;
-                    }
-                }
-                b"intensities" => {
-                    in_intensities = true;
-                }
-                _ => {}
-            },
-            Ok(Event::Text(e)) => {
-                let text = e
-                    .decode()
-                    .map_err(|err| Error::Parse(format!("XRDML text decode error: {err}")))?;
-                let text = text.trim();
-                if text.is_empty() {
-                    // Skip empty text nodes.
-                } else if capture_start {
-                    start_pos = Some(text.parse::<f64>().map_err(|_| {
-                        Error::Parse("XRDML invalid 2Theta start position".into())
-                    })?);
-                } else if capture_end {
-                    end_pos = Some(text.parse::<f64>().map_err(|_| {
-                        Error::Parse("XRDML invalid 2Theta end position".into())
-                    })?);
-                } else if in_intensities {
-                    for part in text.split_whitespace() {
-                        if let Ok(value) = part.parse::<f64>() {
-                            intensities.push(value);
-                        }
-                    }
-                }
+        match reader.read_event() {
+            Ok(Event::Start(root) | Event::Empty(root)) => {
+                return root.local_name().as_ref() == b"xrdMeasurements";
             }
-            Ok(Event::End(e)) => match e.local_name().as_ref() {
-                b"positions" => {
-                    in_positions_2theta = false;
-                }
-                b"startPosition" => {
-                    capture_start = false;
-                }
-                b"endPosition" => {
-                    capture_end = false;
-                }
-                b"intensities" => {
-                    in_intensities = false;
-                    if !intensities.is_empty() && start_pos.is_some() && end_pos.is_some() {
-                        break;
-                    }
-                }
-                _ => {}
-            },
-            Ok(Event::Eof) => break,
-            Err(err) => {
-                return Err(Error::Parse(format!("XRDML parse error: {err}")));
-            }
-            _ => {}
-        }
-        buf.clear();
-    }
-
-    let start = start_pos
-        .ok_or_else(|| Error::Parse("XRDML missing 2Theta start position".into()))?;
-    let end =
-        end_pos.ok_or_else(|| Error::Parse("XRDML missing 2Theta end position".into()))?;
-
-    if intensities.is_empty() {
-        return Err(Error::Parse("XRDML intensities not found".into()));
-    }
-
-    let mut x = Vec::with_capacity(intensities.len());
-    if intensities.len() == 1 {
-        x.push(start);
-    } else {
-        let step = (end - start) / (intensities.len() as f64 - 1.0);
-        for i in 0..intensities.len() {
-            x.push(start + (i as f64) * step);
+            Ok(Event::Decl(_) | Event::PI(_) | Event::Comment(_) | Event::DocType(_)) => {}
+            Ok(Event::Text(text)) if text.iter().all(u8::is_ascii_whitespace) => {}
+            _ => return false,
         }
     }
-
-    Ok(ParsedPattern {
-        x,
-        y: intensities,
-        e: None,
-    })
 }
 
-/// Parses GSAS RAW files.
-///
-/// Expects a `BANK` header line to determine start angle and step size.
-pub(crate) fn parse_gsas_raw<R: Read>(reader: R) -> Result<ParsedPattern, Error> {
-    let reader = BufReader::new(reader);
-    let mut lines = reader.lines();
-
-    let mut start = 0.0;
-    let mut step = 0.0;
-
-    let mut header_found = false;
-
-    for line_res in lines.by_ref() {
-        let line = line_res?;
-        if line.starts_with("BANK") {
-            let parts: Vec<&str> = line.split_whitespace().collect();
-            // BANK 1 4941 494 CONST 1600.0 1.7 0.0 0.0 STD
-            if parts.len() >= 7 {
-                let start_raw = parts[5]
-                    .parse::<f64>()
-                    .map_err(|_| Error::Parse("Invalid start".into()))?;
-                let step_raw = parts[6]
-                    .parse::<f64>()
-                    .map_err(|_| Error::Parse("Invalid step".into()))?;
-
-                // GSAS standard: centidegrees
-                start = start_raw / 100.0;
-                step = step_raw / 100.0;
-                header_found = true;
-                break;
-            }
+pub(crate) fn parse(
+    bytes: &[u8],
+    filename: &str,
+    options: &ReadOptions,
+) -> Result<ParsedPattern, Error> {
+    let ext = Path::new(filename)
+        .extension()
+        .and_then(|v| v.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    if bytes.starts_with(b"RAW1.01")
+        || bytes.starts_with(b"RAW4.00")
+        || bytes.starts_with(b"RAW2")
+        || bytes.starts_with(b"RAW ") && bytes[..bytes.len().min(256)].contains(&0)
+    {
+        return bruker::parse_bruker_raw(bytes, options.index);
+    }
+    if bytes.starts_with(b"PK\x03\x04") || bytes.starts_with(b"PK\x05\x06") {
+        let archive = zip::ZipArchive::new(Cursor::new(bytes))?;
+        if archive
+            .file_names()
+            .any(|n| n.ends_with("DataContainer.xml"))
+        {
+            return xml::parse_brml(bytes, options.index);
         }
-    }
-
-    if !header_found {
-        return Err(Error::Parse(
-            "BANK header not found in RAW file".into(),
-        ));
-    }
-
-    let mut y = Vec::new();
-
-    for line in lines {
-        let line = line?;
-        if line.starts_with("BANK") {
-            break;
+        if archive
+            .file_names()
+            .any(|n| n == "root.xml" || (n.contains("Profile") && n.ends_with(".txt")))
+        {
+            return xml::parse_rasx(bytes, options.index);
         }
-        let parts = line.split_whitespace();
-        for part in parts {
-            if let Ok(val) = part.parse::<f64>() {
-                y.push(val);
-            }
-        }
+        return Err(Error::UnknownFormat);
     }
-
-    // Generate x
-    let mut x = Vec::with_capacity(y.len());
-    for i in 0..y.len() {
-        x.push(start + (i as f64) * step);
+    let content = decode(bytes)?;
+    let mut end = content.len().min(65536);
+    while !content.is_char_boundary(end) {
+        end -= 1;
     }
-
-    Ok(ParsedPattern { x, y, e: None })
-}
-
-/// Parses Bruker binary RAW files.
-///
-/// Uses heuristics to locate the intensity block and axis metadata.
-///
-/// Bruker RAW4 files are not fully documented and may store intensity points
-/// either as contiguous `f32` values or as interleaved records near the file
-/// tail (e.g. `f32 value` + `u32 status`).
-pub(crate) fn parse_bruker_raw<R: Read>(mut reader: R) -> Result<ParsedPattern, Error> {
-    let mut buf = Vec::new();
-    reader.read_to_end(&mut buf)?;
-
-    if !buf.starts_with(b"RAW") {
-        return Err(Error::Parse(
-            "Unsupported Bruker RAW header".into(),
-        ));
+    let head = &content[..end];
+    if head.contains('\0') {
+        return Err(Error::UnknownFormat);
     }
-
-    let mut candidate_layouts = Vec::new();
-    if let Some(layout) = find_bruker_interleaved_tail_block(&buf) {
-        candidate_layouts.push(layout);
-        candidate_layouts.extend(find_bruker_interleaved_count_marker_blocks(
-            &buf,
-            layout.data_offset,
-        ));
+    // All strong content recognizers run before extension fallbacks.
+    if has_xrdml_root(&content) {
+        return xml::parse_xrdml(bytes, options.index);
     }
-    if let Some(layout) = find_bruker_plain_f32_tail_block(&buf) {
-        candidate_layouts.push(layout);
+    if head.lines().any(|l| {
+        l.trim_start().starts_with("*RAS_DATA_START")
+            || l.trim_start().starts_with("*RAS_HEADER_START")
+    }) {
+        return text::parse_ras(bytes, options.index);
     }
-
-    let mut seen_layouts = HashSet::new();
-    candidate_layouts.retain(|layout| {
-        seen_layouts.insert((
-            layout.count,
-            layout.data_offset,
-            layout.stride,
-            layout.value_offset,
-        ))
-    });
-
-    let mut selected: Option<(BrukerDataLayout, f64, f64, bool, f64)> = None;
-    for layout in candidate_layouts {
-        if !bruker_layout_data_plausible(&buf, layout) {
-            continue;
-        }
-        let count_offsets = find_bruker_count_offsets(&buf, layout.count, layout.data_offset);
-        if let Some((start, step, has_count_marker)) = find_bruker_start_step(
-            &buf,
-            &count_offsets,
-            layout.count,
-            layout.data_offset,
-        ) {
-            let score = score_bruker_start_step(start, step, layout.count);
-            match selected {
-                Some((_, _, _, best_has_count_marker, best_score))
-                    if (has_count_marker as u8, score)
-                        <= (best_has_count_marker as u8, best_score) => {}
-                _ => selected = Some((layout, start, step, has_count_marker, score)),
-            }
-        }
+    if head.lines().any(|l| l.trim_start().starts_with("data_")) && head.contains("_pd_") {
+        one_pattern(options)?;
+        return text::parse_pdcif(bytes, options.block.as_deref());
     }
-
-    let (layout, start, step, _, _) = selected.ok_or_else(|| {
-        Error::Parse("Failed to locate Bruker RAW start/step metadata".into())
-    })?;
-    let count = layout.count;
-
-    let count_usize = count as usize;
-    let mut y = Vec::with_capacity(count_usize);
-    for i in 0..count_usize {
-        let off = layout.data_offset + i * layout.stride + layout.value_offset;
-        let val = read_f32_le(&buf, off).ok_or_else(|| {
-            Error::Parse("Bruker RAW intensity data truncated".into())
-        })?;
-        y.push(val as f64);
+    if head
+        .lines()
+        .any(|l| l.split_whitespace().next() == Some("BANK"))
+    {
+        return text::parse_gsas(bytes, options.index);
     }
-
-    let mut x = Vec::with_capacity(count_usize);
-    for i in 0..count_usize {
-        x.push(start + step * (i as f64));
+    if head
+        .lines()
+        .any(|l| l.trim_start().starts_with("_DRIVE=") || l.trim_start().starts_with("_DRIVE ="))
+    {
+        return text::parse_uxd(bytes, options.index);
     }
-
-    Ok(ParsedPattern { x, y, e: None })
-}
-
-#[derive(Debug, Clone, Copy)]
-struct BrukerDataLayout {
-    count: u32,
-    data_offset: usize,
-    stride: usize,
-    value_offset: usize,
-}
-
-fn find_bruker_plain_f32_tail_block(buf: &[u8]) -> Option<BrukerDataLayout> {
-    let len = buf.len();
-    let mut best: Option<BrukerDataLayout> = None;
-
-    for off in 0..len.saturating_sub(4) {
-        let count = read_u32_le(buf, off)?;
-        if count < 10 || count > 5_000_000 {
-            continue;
-        }
-        let data_len = (count as usize) * 4;
-        if data_len > len {
-            continue;
-        }
-        let data_offset = len - data_len;
-        if data_offset <= off {
-            continue;
-        }
-
-        let layout = BrukerDataLayout {
-            count,
-            data_offset,
-            stride: 4,
-            value_offset: 0,
+    let lines: Vec<&str> = head.lines().take(5).collect();
+    let chi_header = lines.len() >= 5
+        && lines[..3].iter().all(|l| {
+            let s = l.trim();
+            !s.is_empty()
+                && !s.starts_with(['#', '!', ';'])
+                && s.split_whitespace()
+                    .take(2)
+                    .any(|v| v.parse::<f64>().is_err())
+        })
+        && {
+            let fields: Vec<_> = lines[3].split_whitespace().collect();
+            !fields.is_empty()
+                && fields.len() <= 2
+                && (fields.len() == 1 || fields[1] == "1")
+                && fields.iter().all(|v| v.parse::<usize>().is_ok())
+                && fields[0].parse::<usize>().ok()
+                    == Some(
+                        content
+                            .lines()
+                            .skip(4)
+                            .filter(|l| !l.trim().is_empty())
+                            .count(),
+                    )
         };
-
-        match best {
-            Some(best_layout) if count <= best_layout.count => {}
-            _ => best = Some(layout),
-        }
+    if chi_header {
+        one_pattern(options)?;
+        return text::parse_chi(bytes);
     }
-
-    best
-}
-
-fn find_bruker_interleaved_tail_block(buf: &[u8]) -> Option<BrukerDataLayout> {
-    const MIN_POINTS: usize = 32;
-    const FLAG_MAX: u32 = 3;
-
-    let len = buf.len();
-    let mut best: Option<BrukerDataLayout> = None;
-
-    for value_offset in [0usize, 4usize] {
-        let companion_offset = if value_offset == 0 { 4usize } else { 0usize };
-        let mut run = 0usize;
-
-        while len >= (run + 1) * 8 {
-            let rec_off = len - (run + 1) * 8;
-            let flag = match read_u32_le(buf, rec_off + companion_offset) {
-                Some(v) => v,
-                None => break,
-            };
-            if flag > FLAG_MAX {
-                break;
-            }
-            let val = match read_f32_le(buf, rec_off + value_offset) {
-                Some(v) => v,
-                None => break,
-            };
-            if !val.is_finite() || val.abs() > 1.0e9 {
-                break;
-            }
-            run += 1;
+    match ext.as_str() {
+        "xrdml" => return xml::parse_xrdml(bytes, options.index),
+        "ras" => return text::parse_ras(bytes, options.index),
+        "uxd" => return text::parse_uxd(bytes, options.index),
+        "gsas" | "gsa" | "fxye" | "gda" | "xra" | "raw" => {
+            return text::parse_gsas(bytes, options.index)
         }
-
-        if run < MIN_POINTS {
-            continue;
+        "cif" => {
+            one_pattern(options)?;
+            return text::parse_pdcif(bytes, options.block.as_deref());
         }
-
-        let candidate = BrukerDataLayout {
-            count: run as u32,
-            data_offset: len - run * 8,
-            stride: 8,
-            value_offset,
-        };
-
-        match best {
-            Some(current) if candidate.count <= current.count => {}
-            _ => best = Some(candidate),
+        "chi" => {
+            one_pattern(options)?;
+            return text::parse_chi(bytes);
         }
-    }
-
-    best
-}
-
-fn find_bruker_interleaved_count_marker_blocks(
-    buf: &[u8],
-    search_end: usize,
-) -> Vec<BrukerDataLayout> {
-    const MIN_POINTS: u32 = 32;
-    const MAX_POINTS: u32 = 5_000_000;
-    const FLAG_MAX: u32 = 3;
-
-    let len = buf.len();
-    let mut layouts = Vec::new();
-    let mut seen = HashSet::new();
-
-    let end = search_end.min(len.saturating_sub(4));
-    for off in 0..=end {
-        let count = match read_u32_le(buf, off) {
-            Some(value) => value,
-            None => continue,
-        };
-        if !(MIN_POINTS..=MAX_POINTS).contains(&count) {
-            continue;
+        "rasx" | "brml" => {
+            return Err(Error::Parse(format!("{ext} is not a readable ZIP archive")))
         }
-
-        let start_off = match off.checked_sub(16) {
-            Some(value) => value,
-            None => continue,
-        };
-        let (start, step) = match (read_f64_le(buf, start_off), read_f64_le(buf, start_off + 8)) {
-            (Some(start), Some(step)) => (start, step),
-            _ => continue,
-        };
-        if !bruker_start_step_valid(start, step, count) {
-            continue;
-        }
-
-        let data_len = (count as usize) * 8;
-        if data_len > len {
-            continue;
-        }
-        let data_offset = len - data_len;
-        if off >= data_offset {
-            continue;
-        }
-
-        for value_offset in [0usize, 4usize] {
-            let companion_offset = if value_offset == 0 { 4usize } else { 0usize };
-            let count_usize = count as usize;
-            let sample_indices = [0usize, count_usize / 2, count_usize - 1];
-            let mut flags_plausible = true;
-            for idx in sample_indices {
-                let rec_off = data_offset + idx * 8;
-                let flag = match read_u32_le(buf, rec_off + companion_offset) {
-                    Some(v) => v,
-                    None => {
-                        flags_plausible = false;
-                        break;
-                    }
-                };
-                if flag > FLAG_MAX {
-                    flags_plausible = false;
-                    break;
-                }
-            }
-            if !flags_plausible {
-                continue;
-            }
-
-            let key = (count, data_offset, value_offset);
-            if seen.insert(key) {
-                layouts.push(BrukerDataLayout {
-                    count,
-                    data_offset,
-                    stride: 8,
-                    value_offset,
-                });
-            }
-        }
-    }
-
-    layouts
-}
-
-fn bruker_layout_data_plausible(buf: &[u8], layout: BrukerDataLayout) -> bool {
-    let count = layout.count as usize;
-    if count == 0 {
-        return false;
-    }
-
-    // Sample evenly across the candidate stream. A high fraction of subnormal
-    // values strongly indicates we are reading marker words as floats.
-    let samples = count.min(64);
-    let mut subnormal = 0usize;
-
-    for s in 0..samples {
-        let idx = if samples == 1 {
-            0
-        } else {
-            s * (count - 1) / (samples - 1)
-        };
-        let off = layout.data_offset + idx * layout.stride + layout.value_offset;
-        let val = match read_f32_le(buf, off) {
-            Some(v) => v,
-            None => return false,
-        };
-        if !val.is_finite() {
-            return false;
-        }
-        if val != 0.0 && val.abs() < f32::MIN_POSITIVE {
-            subnormal += 1;
-        }
-    }
-
-    (subnormal as f64) / (samples as f64) <= 0.2
-}
-
-fn find_bruker_count_offsets(buf: &[u8], count: u32, search_end: usize) -> Vec<usize> {
-    if search_end < 4 {
-        return Vec::new();
-    }
-    let end = search_end.min(buf.len().saturating_sub(4));
-    let mut offsets = Vec::new();
-
-    for off in 0..=end {
-        if read_u32_le(buf, off) == Some(count) {
-            offsets.push(off);
-        }
-    }
-    offsets
-}
-
-fn find_bruker_start_step(
-    buf: &[u8],
-    count_offsets: &[usize],
-    count: u32,
-    search_end: usize,
-) -> Option<(f64, f64, bool)> {
-    let mut best: Option<(f64, f64, f64)> = None;
-
-    for &count_offset in count_offsets {
-        if let Some(start_off) = count_offset.checked_sub(16) {
-            if let (Some(start), Some(step)) =
-                (read_f64_le(buf, start_off), read_f64_le(buf, start_off + 8))
+        "dif" => {
+            let reflections = head
+                .lines()
+                .filter(|line| {
+                    let p: Vec<_> = line.split_whitespace().collect();
+                    (p.len() == 5 || p.len() == 6)
+                        && p[..2].iter().all(|v| v.parse::<f64>().is_ok())
+                        && p[p.len() - 3..].iter().all(|v| v.parse::<i32>().is_ok())
+                })
+                .count();
+            if reflections >= 3
+                || head.lines().any(|l| {
+                    l.to_lowercase()
+                        .split_whitespace()
+                        .collect::<Vec<_>>()
+                        .windows(3)
+                        .any(|w| w == ["h", "k", "l"])
+                })
             {
-                if bruker_start_step_valid(start, step, count) {
-                    let score = score_bruker_start_step(start, step, count);
-                    match best {
-                        Some((_, _, best_score)) if score <= best_score => {}
-                        _ => best = Some((start, step, score)),
-                    }
-                }
+                return Err(Error::Parse(
+                    "DIF reflection peak lists are not measured XRD profiles".into(),
+                ));
             }
         }
+        _ => {}
     }
-
-    if best.is_some() {
-        return best.map(|(start, step, _)| (start, step, true));
-    }
-
-    // Some Bruker RAW variants do not expose a count marker adjacent to axis
-    // metadata. Fall back to scanning the pre-data region for plausible pairs.
-    let end = search_end.min(buf.len().saturating_sub(16));
-    for off in 0..=end {
-        let (start, step) = match (read_f64_le(buf, off), read_f64_le(buf, off + 8)) {
-            (Some(start), Some(step)) => (start, step),
-            _ => continue,
-        };
-        if bruker_start_step_valid(start, step, count) {
-            let score = score_bruker_start_step(start, step, count);
-            match best {
-                Some((_, _, best_score)) if score <= best_score => {}
-                _ => best = Some((start, step, score)),
-            }
-        }
-    }
-
-    best.map(|(start, step, _)| (start, step, false))
-}
-
-fn bruker_start_step_valid(start: f64, step: f64, count: u32) -> bool {
-    if !start.is_finite() || !step.is_finite() || step <= 1.0e-6 || step > 10.0 {
-        return false;
-    }
-    let n = count as f64;
-    let end = start + step * (n - 1.0);
-    if !end.is_finite() {
-        return false;
-    }
-    let span = step * ((n - 1.0).max(0.0));
-    if !span.is_finite() || !(1.0..=360.0).contains(&span) {
-        return false;
-    }
-    true
-}
-
-fn score_bruker_start_step(start: f64, step: f64, count: u32) -> f64 {
-    let span = step * ((count as f64 - 1.0).max(0.0));
-    let mut score = span.min(360.0);
-    if (0.0..=180.0).contains(&start) {
-        score += 50.0;
-    }
-    if (1.0e-4..=0.5).contains(&step) {
-        score += 25.0;
-    }
-    score
-}
-
-fn read_u32_le(buf: &[u8], offset: usize) -> Option<u32> {
-    let bytes = buf.get(offset..offset + 4)?;
-    Some(u32::from_le_bytes(bytes.try_into().ok()?))
-}
-
-fn read_f32_le(buf: &[u8], offset: usize) -> Option<f32> {
-    let bytes = buf.get(offset..offset + 4)?;
-    Some(f32::from_le_bytes(bytes.try_into().ok()?))
-}
-
-fn read_f64_le(buf: &[u8], offset: usize) -> Option<f64> {
-    let bytes = buf.get(offset..offset + 8)?;
-    Some(f64::from_le_bytes(bytes.try_into().ok()?))
+    one_pattern(options)?;
+    text::parse_xy(bytes)
 }

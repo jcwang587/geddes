@@ -1,0 +1,50 @@
+[project]
+site_name = "Geddes"
+site_url = "https://jcwang587.github.io/geddes/"
+site_description = "Read XRD patterns as 2θ and intensity arrays in Rust, Python, and Node.js."
+repo_url = "https://github.com/jcwang587/geddes"
+repo_name = "jcwang587/geddes"
+docs_dir = "docs"
+site_dir = "site"
+nav = [
+  { "Getting started" = "index.md" },
+  { "Usage" = "reading-patterns.md" },
+  { "Formats" = "formats.md" },
+  { "API reference" = "api.md" },
+]
+
+[project.theme]
+custom_dir = "overrides"
+language = "en"
+features = [
+  "content.code.copy",
+  "content.tabs.link",
+  "navigation.footer",
+  "navigation.top",
+  "toc.follow",
+  "search.highlight",
+]
+
+[[project.theme.palette]]
+scheme = "default"
+primary = "indigo"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+scheme = "slate"
+primary = "indigo"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to light mode"
+
+[project.markdown_extensions]
+attr_list = {}
+tables = {}
+toc.permalink = true
+pymdownx.highlight.anchor_linenums = true
+pymdownx.highlight.line_spans = "__span"
+pymdownx.highlight.pygments_lang_class = true
+pymdownx.inlinehilite = {}
+pymdownx.superfences = {}
+pymdownx.tabbed.alternate_style = true
+pymdownx.tabbed.combine_header_slug = true

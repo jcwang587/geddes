@@ -1,0 +1,119 @@
+name: Check Node packages
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python tests/check_release_version.py
+
+  build:
+    needs: version
+    runs-on: ${{ matrix.host }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - host: windows-latest
+            target: x86_64-pc-windows-msvc
+            flags: ""
+          - host: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            flags: ""
+          - host: macos-15-intel
+            target: x86_64-apple-darwin
+            flags: ""
+          - host: macos-latest
+            target: aarch64-apple-darwin
+            flags: ""
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            flags: --use-napi-cross
+          - host: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            flags: --use-napi-cross
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: node/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - run: npm ci
+        working-directory: node
+      - name: Build native binding and loader
+        working-directory: node
+        run: npm run build -- --target ${{ matrix.target }} ${{ matrix.flags }} -- --locked
+      - uses: actions/upload-artifact@v7
+        with:
+          name: bindings-${{ matrix.target }}
+          path: |
+            node/geddes.*.node
+            node/index.js
+            node/index.d.ts
+          if-no-files-found: error
+
+  pack:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: node/package-lock.json
+      - run: npm ci
+        working-directory: node
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: bindings-*
+          path: node/artifacts
+      - name: Pack the JS package and all native packages
+        working-directory: node
+        run: npm run pack:release -- artifacts packages
+      - uses: actions/upload-artifact@v7
+        with:
+          name: node-packages
+          path: node/packages/*
+          if-no-files-found: error
+
+  install-test:
+    needs: pack
+    runs-on: ${{ matrix.host }}
+    strategy:
+      fail-fast: false
+      matrix:
+        host: [ubuntu-latest, ubuntu-24.04-arm, macos-15-intel, macos-latest, windows-latest, windows-11-arm]
+        node-version: ["16", "24"]
+        exclude:
+          - host: windows-11-arm
+            node-version: "16"
+        include:
+          # Node 16 has no Windows ARM64 distribution.
+          - host: windows-11-arm
+            node-version: "20"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node-version }}
+      - uses: actions/download-artifact@v8
+        with:
+          name: node-packages
+          path: node/packages
+      - name: Install tarballs and test the public loader
+        working-directory: node
+        run: npm run check:package -- packages

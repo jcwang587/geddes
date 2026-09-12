@@ -1,89 +1,50 @@
 # Geddes
 
-[![Crates.io](https://img.shields.io/crates/v/geddes)](https://crates.io/crates/geddes)
-[![PyPI](https://img.shields.io/pypi/v/geddes)](https://pypi.org/project/geddes/)
-[![npm](https://img.shields.io/npm/v/%40jcwang587%2Fgeddes)](https://www.npmjs.com/package/@jcwang587/geddes)
+Geddes reads XRD files into two arrays: `x` (2θ in degrees) and `y` (intensity).
+It is written in Rust, with Python and Node.js bindings.
 
+## Quick start
 
-A Rust XRD pattern parser with Python and Node.js bindings. Supports:
-- `.raw` (GSAS text or Bruker binary)
-- `.rasx` (Rigaku Zip archive)
-- `.xrdml` (Panalytical XML)
-- `.xy` / `.xye` (Space-separated ASCII)
-- `.csv` (Comma-separated values)
-
-## Rust Usage
-
-Load from a file path:
-
-```rust
-use geddes::read;
-
-fn main() {
-    let pattern = read("tests/data/xy/sample.xy").unwrap();
-    println!("{} {}", pattern.x.len(), pattern.y.len());
-}
-```
-
-Load from in-memory bytes (filename is used to infer the format):
-
-```rust
-use std::fs;
-
-use geddes::read_bytes;
-
-fn main() {
-    let data = fs::read("tests/data/xy/sample.xy").unwrap();
-    let pattern = read_bytes(&data, "sample.xy").unwrap();
-    println!("{} {}", pattern.x.len(), pattern.y.len());
-}
-```
-
-## Python Usage
-
-Load from a file path:
+### Python
 
 ```python
 import geddes
 
-pattern = geddes.read("tests/data/xy/sample.xy")
-print(len(pattern.x), len(pattern.y))
+pattern = geddes.read("sample.xy")
+x, y = pattern.x, pattern.y
 ```
 
-Load from in-memory bytes (filename is used to infer the format):
+### Rust
 
-```python
-import geddes
-
-with open("tests/data/xy/sample.xy", "rb") as f:
-    data = f.read()
-
-pattern = geddes.read_bytes(data, "sample.xy")
-print(len(pattern.x), len(pattern.y))
+```rust
+fn main() -> Result<(), geddes::Error> {
+    let pattern = geddes::read("sample.xy")?;
+    let (x, y) = (pattern.x, pattern.y);
+    Ok(())
+}
 ```
 
-## Node.js Usage
-
-Load from a file path:
+### Node.js
 
 ```javascript
 const geddes = require('@jcwang587/geddes')
 
-const pattern = geddes.read('tests/data/xy/sample.xy')
-console.log(pattern.x.length, pattern.y.length)
+const { x, y } = geddes.read('sample.xy')
 ```
 
-Load from in-memory bytes (filename is used to infer the format):
+## Supported formats
 
-```javascript
-const fs = require('node:fs')
-const geddes = require('@jcwang587/geddes')
+| Format | Extensions |
+|---|---|
+| Text | `.xy`, `.xye`, `.csv`, `.dat`, `.prn`, `.txt` |
+| GSAS | `.gsas`, `.gsa`, `.fxye`, `.gda`, `.xra`, `.raw` |
+| Bruker RAW | `.raw` |
+| RAS | `.ras` |
+| RASX | `.rasx` |
+| UXD | `.uxd` |
+| BRML | `.brml` |
+| XRDML | `.xrdml` |
+| CHI | `.chi` |
+| Powder CIF | `.cif` |
 
-const bytes = fs.readFileSync('tests/data/xy/sample.xy')
-const pattern = geddes.readBytes(bytes, 'sample.xy')
-console.log(pattern.x.length, pattern.y.length)
-```
-
-## License
-
-MIT
+See the [documentation](https://jcwang587.github.io/geddes/) for installation, usage, and format limits.

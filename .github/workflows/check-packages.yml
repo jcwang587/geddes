@@ -1,0 +1,23 @@
+name: Check packages
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    name: Check Rust distribution
+    uses: ./.github/workflows/check-rust.yml
+  python:
+    name: Check Python distributions
+    uses: ./.github/workflows/check-python.yml
+  node:
+    name: Check Node distributions
+    uses: ./.github/workflows/check-node.yml

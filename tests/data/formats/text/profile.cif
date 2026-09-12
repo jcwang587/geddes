@@ -1,0 +1,31 @@
+data_structure_only
+_chemical_name_common 'Synthetic profile test'
+_audit_creation_method
+;
+This field contains text which is not a CIF loop:
+loop_
+_pd_meas_2theta_scan
+;
+loop_
+_atom_site_label
+_atom_site_type_symbol
+'data_fake' 'Si'
+"_pd_meas_counts_total" "O"
+
+data_profile_meas
+loop_
+_pd_meas_counts_total
+_pd_meas_2theta_scan
+_pd_proc_ls_weight
+4 10.000(2) 0.25 81 10.125(2) 0.012345679
+144 10.250(2) 0 # zero weight must not discard the measured point
+9 10.375(2) 0.111111111
+1 10.500(2) 1
+
+data_profile_other
+loop_
+_pd_proc_2theta_corrected
+_pd_proc_intensity_total
+20.0 '100(5)'
+20.25 64(4)
+20.5 25(2)

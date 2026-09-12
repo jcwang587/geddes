@@ -15,4 +15,10 @@ __pycache__/
 node/node_modules/
 node/npm/
 node/artifacts/
+node/packages/
 node/*.node
+
+# Documentation environment and generated site
+.venv-docs/
+/site/
+/.cache/

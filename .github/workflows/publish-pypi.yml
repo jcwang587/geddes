@@ -10,68 +10,25 @@ on:
         required: true
         default: 'no'
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 jobs:
-  build-wheels:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Build wheels with maturin (manylinux)
-        if: matrix.os == 'ubuntu-latest'
-        uses: PyO3/maturin-action@v1
-        with:
-          command: build
-          args: --release --out dist -i python${{ matrix.python-version }}
-          manylinux: auto
-      - name: Build wheels with maturin
-        if: matrix.os != 'ubuntu-latest'
-        uses: PyO3/maturin-action@v1
-        with:
-          command: build
-          args: --release --out dist -i python${{ matrix.python-version }}
-      - name: Upload wheel artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: wheels-${{ matrix.os }}-${{ matrix.python-version }}
-          path: dist/*.whl
-          if-no-files-found: error
+  check:
+    uses: ./.github/workflows/check-python.yml
   publish:
     runs-on: ubuntu-latest
-    needs: build-wheels
+    needs: check
     if: github.event_name == 'push' || inputs.publishToPyPI == 'yes'
     environment:
       name: pypi
       url: https://pypi.org/project/geddes/
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
       id-token: write
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: "3.12"
-      - name: Build sdist with maturin
-        uses: PyO3/maturin-action@v1
-        with:
-          command: sdist
-          args: --out dist
-      - name: Download wheel artifacts
+      - name: Download checked distributions
         uses: actions/download-artifact@v8
         with:
-          pattern: wheels-*
+          pattern: checked-python-*
           path: dist
           merge-multiple: true
       - name: Publish package to PyPI

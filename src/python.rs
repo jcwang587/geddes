@@ -1,50 +1,45 @@
-use crate::{from_reader, read, Error, Pattern};
+use crate::{read_bytes_with_options, read_with_options, Error, Pattern, ReadOptions};
 use pyo3::exceptions::{PyIOError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::PyBytes;
-use std::io::Cursor;
 
-/// Convert a Rust library error into a Python exception.
 fn to_py_err(err: Error) -> PyErr {
     match err {
         Error::Io(err) => PyIOError::new_err(err.to_string()),
-        Error::Zip(err) => PyValueError::new_err(err.to_string()),
-        Error::Parse(msg) => PyValueError::new_err(msg),
-        Error::UnknownFormat => PyValueError::new_err("Unknown format"),
-        Error::FileNotFoundInArchive(name) => {
-            PyValueError::new_err(format!("File not found in archive: {}", name))
-        }
+        other => PyValueError::new_err(other.to_string()),
     }
 }
 
 #[pymethods]
 impl Pattern {
     #[new]
-    fn py_new(x: Vec<f64>, y: Vec<f64>, e: Option<Vec<f64>>) -> PyResult<Self> {
-        Pattern::new(x, y, e).map_err(to_py_err)
+    fn py_new(x: Vec<f64>, y: Vec<f64>) -> PyResult<Self> {
+        Pattern::new(x, y).map_err(to_py_err)
     }
 }
 
-/// Load a pattern from a file path.
-#[pyfunction(name = "read")]
-fn read_py(path: &str) -> PyResult<Pattern> {
-    read(path).map_err(to_py_err)
+/// Load one XRD pattern as x (2theta degrees) and y (intensity).
+#[pyfunction(name = "read", signature = (path, *, index=0, block=None))]
+fn read_py(path: &str, index: usize, block: Option<String>) -> PyResult<Pattern> {
+    read_with_options(path, &ReadOptions { index, block }).map_err(to_py_err)
 }
 
-/// Load a pattern from raw bytes with a filename hint.
-#[pyfunction]
+/// Load bytes using content detection and a filename hint.
+#[pyfunction(signature = (data, filename, *, index=0, block=None))]
 fn read_bytes(
     data: &Bound<'_, PyBytes>,
     filename: &str,
+    index: usize,
+    block: Option<String>,
 ) -> PyResult<Pattern> {
-    let cursor = Cursor::new(data.as_bytes());
-    from_reader(cursor, filename).map_err(to_py_err)
+    read_bytes_with_options(data.as_bytes(), filename, &ReadOptions { index, block })
+        .map_err(to_py_err)
 }
 
-/// Python module definition for the `geddes` extension.
 #[pymodule]
 fn geddes(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Pattern>()?;
+    m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add_function(wrap_pyfunction!(read_py, m)?)?;
     m.add_function(wrap_pyfunction!(read_bytes, m)?)?;
     Ok(())

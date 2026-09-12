@@ -1,9 +1,10 @@
 {
   "name": "@jcwang587/geddes",
-  "version": "0.5.0",
+  "version": "1.0.0",
   "description": "Node.js bindings for geddes (Rust XRD parser)",
   "main": "index.js",
   "types": "index.d.ts",
+  "homepage": "https://jcwang587.github.io/geddes/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jcwang587/geddes.git"
@@ -31,6 +32,9 @@
     "access": "public"
   },
   "scripts": {
+    "pack:release": "node ./scripts/pack-release.mjs",
+    "check:package": "node ./scripts/check-package.cjs",
+    "publish:packages": "node ./scripts/publish-packages.mjs",
     "sync:version": "node ./scripts/sync-version.mjs",
     "prepare:release": "cargo check --manifest-path ../Cargo.toml && cargo check --manifest-path ./Cargo.toml && npm run sync:version",
     "artifacts": "napi create-npm-dirs && napi artifacts --output-dir .",

@@ -1,0 +1,15 @@
+; Synthetic DIFFRAC-AT export. Header values persist across ranges.
+_FILEVERSION=2
+_DRIVE='COUPLED'
+_START=10
+_STEPSIZE=0.125
+_COUNTS
+4 81 144
+9 1
+_START=20
+_2THETACPS
+20 100
+20.25 64
+20.5 25
+_CPS
+100 64 25
