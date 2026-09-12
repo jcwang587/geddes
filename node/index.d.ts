@@ -3,9 +3,10 @@
 export interface Pattern {
   x: Array<number>
   y: Array<number>
-  e?: Array<number>
 }
-
-export declare function read(path: string): Pattern
-
-export declare function readBytes(data: Buffer, filename: string): Pattern
+export interface ReadOptions {
+  scan?: number
+  block?: string
+}
+export declare function read(path: string, options?: ReadOptions): Pattern
+export declare function readBytes(data: Buffer, filename: string, options?: ReadOptions): Pattern

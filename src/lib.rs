@@ -1,170 +1,110 @@
-//! # Geddes
+//! Load XRD patterns as two arrays: 2θ in degrees (`x`) and intensity (`y`).
 //!
-//! `geddes` is a library for loading and parsing various diffraction pattern file formats.
-//! It supports common formats like `.raw`, `.rasx`, `.xrdml`, `.xy` / `.xye`, and `.csv`.
+//! Supports ASCII columns, GSAS, Rigaku RAS/RASX, Bruker RAW/UXD/BRML,
+//! PANalytical XRDML, FIT2D CHI and powder CIF. No refinement or metadata API.
 
+mod bruker;
 mod error;
 mod parser;
-
 #[cfg(feature = "python")]
 mod python;
+mod text;
+mod xml;
 
 pub use error::Error;
-use parser::{
-    parse_bruker_raw, parse_csv, parse_gsas_raw, parse_rasx, parse_xrdml, parse_xy, ParsedPattern,
-};
 #[cfg(feature = "python")]
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::fs::File;
-use std::io::{Cursor, Read, Seek, SeekFrom};
+use std::io::{Read, Seek};
 use std::path::Path;
 
-/// Represents a diffraction pattern with position, intensity, and optional error.
+/// One diffraction pattern. Extra file columns are deliberately not returned.
 #[cfg_attr(feature = "python", pyclass(get_all, skip_from_py_object))]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Pattern {
-    /// The x-axis values (e.g., 2-theta or Q).
+    /// Diffraction angle 2θ, in degrees, strictly increasing.
     pub x: Vec<f64>,
-    /// The y-axis values (intensity).
+    /// Intensity in the file's units (counts or counts per second).
     pub y: Vec<f64>,
-    /// The uncertainty/error values, if available.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub e: Option<Vec<f64>>,
 }
 
 impl Pattern {
-    /// Creates a new diffraction pattern, returning an error if lengths are inconsistent
-    /// or the x-axis is not strictly increasing.
-    pub fn new(x: Vec<f64>, y: Vec<f64>, e: Option<Vec<f64>>) -> Result<Self, Error> {
-        Self::validate(&x, &y, e.as_deref())?;
-        Ok(Pattern { x, y, e })
-    }
-
-    fn from_parsed(data: ParsedPattern) -> Result<Self, Error> {
-        Self::new(data.x, data.y, data.e)
-    }
-
-    fn validate(x: &[f64], y: &[f64], e: Option<&[f64]>) -> Result<(), Error> {
+    pub fn new(x: Vec<f64>, y: Vec<f64>) -> Result<Self, Error> {
         if x.len() != y.len() {
+            return Err(Error::Parse("x and y must have the same length".into()));
+        }
+        if x.is_empty() {
+            return Err(Error::Parse("pattern contains no points".into()));
+        }
+        if x.iter().any(|v| !v.is_finite()) || x.windows(2).any(|w| w[0] >= w[1]) {
             return Err(Error::Parse(
-                "x and y must have the same length".into(),
+                "x values must be finite and strictly increasing".into(),
             ));
         }
-        if let Some(e_vec) = e {
-            if e_vec.len() != x.len() {
-                return Err(Error::Parse(
-                    "e must have the same length as x and y".into(),
-                ));
-            }
+        if y.iter().any(|v| !v.is_finite()) {
+            return Err(Error::Parse("y values must be finite".into()));
         }
+        Ok(Self { x, y })
+    }
 
-        // Single pass: rejects NaN (via `!(prev < v)`, since any comparison
-        // with NaN is false) and non-strictly-increasing values together.
-        let mut iter = x.iter().copied();
-        if let Some(mut prev) = iter.next() {
-            if prev.is_nan() {
-                return Err(Error::Parse(
-                    "x values must be strictly increasing".into(),
-                ));
-            }
-            for v in iter {
-                if !(prev < v) {
-                    return Err(Error::Parse(
-                        "x values must be strictly increasing".into(),
-                    ));
-                }
-                prev = v;
-            }
+    fn from_parsed(mut data: parser::ParsedPattern) -> Result<Self, Error> {
+        if data.x.len() > 1 && data.x.windows(2).all(|w| w[0] > w[1]) {
+            data.x.reverse();
+            data.y.reverse();
         }
-
-        Ok(())
+        Self::new(data.x, data.y)
     }
 }
 
-/// Load a pattern from a file path.
-///
-/// Format is determined automatically by the file extension.
-///
-/// # Examples
-///
+/// Choose one pattern without adding metadata to the returned arrays.
+#[derive(Debug, Clone, Default)]
+pub struct ReadOptions {
+    /// Zero-based scan/bank index for GSAS, RAW, RAS, RASX, UXD, XRDML and BRML.
+    pub scan: usize,
+    /// Substring identifying a powder CIF data block. First matching profile by default.
+    pub block: Option<String>,
+}
+
+/// Load the first pattern in a file, detecting its content before its suffix.
 /// ```no_run
-/// use geddes::read;
-///
-/// let pattern = read("tests/data/xy/sample.xy").expect("Failed to load file");
-/// println!("Loaded {} points", pattern.x.len());
+/// let pattern = geddes::read("sample.xrdml")?;
+/// println!("{} points", pattern.x.len());
+/// # Ok::<(), geddes::Error>(())
 /// ```
 pub fn read<P: AsRef<Path>>(path: P) -> Result<Pattern, Error> {
+    read_with_options(path, &ReadOptions::default())
+}
+
+pub fn read_with_options<P: AsRef<Path>>(path: P, options: &ReadOptions) -> Result<Pattern, Error> {
     let path = path.as_ref();
-    let file = File::open(path)?;
-    let filename = path.file_name().and_then(|s| s.to_str()).unwrap_or("");
-    from_reader(file, filename)
+    let bytes = std::fs::read(path)?;
+    read_bytes_with_options(&bytes, path.to_str().unwrap_or(""), options)
 }
 
-/// Load a pattern from any reader that implements Read + Seek.
-///
-/// This is useful for loading from bytes (using `Cursor<Vec<u8>>`) or other non-file sources,
-/// which is particularly important for WASM environments.
-///
-/// # Arguments
-///
-/// * `reader` - The reader to read from. Must implement `Read` and `Seek`.
-/// * `filename` - The name of the file (used to determine format via extension).
-///
-/// # Examples
-///
-/// ```
-/// use std::io::Cursor;
-/// use geddes::from_reader;
-///
-/// let data = b"10.0 100.0\n10.1 105.0";
-/// let cursor = Cursor::new(data);
-/// let pattern = from_reader(cursor, "data.xy").unwrap();
-/// assert_eq!(pattern.x.len(), 2);
-/// ```
-pub fn from_reader<R: Read + Seek>(
-    reader: R,
+/// Load from a seekable stream. `filename` is a hint when content is ambiguous.
+pub fn from_reader<R: Read + Seek>(reader: R, filename: &str) -> Result<Pattern, Error> {
+    from_reader_with_options(reader, filename, &ReadOptions::default())
+}
+
+pub fn from_reader_with_options<R: Read + Seek>(
+    mut reader: R,
     filename: &str,
+    options: &ReadOptions,
 ) -> Result<Pattern, Error> {
-    let ext = Path::new(filename)
-        .extension()
-        .and_then(|s| s.to_str())
-        .unwrap_or("")
-        .to_lowercase();
-
-    let mut reader = reader;
-    let data = match ext.as_str() {
-        "raw" => {
-            // Check for binary (Bruker) vs Text (GSAS)
-            let mut buffer = [0u8; 1024];
-            let bytes_read = reader.read(&mut buffer)?;
-            reader.seek(SeekFrom::Start(0))?;
-
-            // Simple heuristic: if we find null bytes, assume binary.
-            let chunk = &buffer[..bytes_read];
-            let is_binary = chunk.iter().any(|&b| b == 0);
-
-            // GSAS usually starts with a title line or BANK, and is text.
-            // Bruker binary usually has non-text bytes.
-
-            if is_binary {
-                parse_bruker_raw(reader)?
-            } else {
-                parse_gsas_raw(reader)?
-            }
-        }
-        "rasx" => parse_rasx(reader)?,
-        "xrdml" => parse_xrdml(reader)?,
-        "xy" | "xye" => parse_xy(reader)?,
-        "csv" => parse_csv(reader)?,
-        _ => return Err(Error::UnknownFormat),
-    };
-
-    Pattern::from_parsed(data)
+    let mut bytes = Vec::new();
+    reader.read_to_end(&mut bytes)?;
+    read_bytes_with_options(&bytes, filename, options)
 }
 
-/// Load a pattern from in-memory bytes with a filename hint.
+/// Load bytes without opening a file. Extra columns, including uncertainties, are ignored.
 pub fn read_bytes<B: AsRef<[u8]>>(bytes: B, filename: &str) -> Result<Pattern, Error> {
-    let cursor = Cursor::new(bytes.as_ref());
-    from_reader(cursor, filename)
+    read_bytes_with_options(bytes, filename, &ReadOptions::default())
+}
+
+pub fn read_bytes_with_options<B: AsRef<[u8]>>(
+    bytes: B,
+    filename: &str,
+    options: &ReadOptions,
+) -> Result<Pattern, Error> {
+    Pattern::from_parsed(parser::parse(bytes.as_ref(), filename, options)?)
 }

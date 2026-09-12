@@ -1,0 +1,38 @@
+[project]
+site_name = "Geddes"
+site_description = "Read XRD patterns as 2θ and intensity arrays in Rust, Python, and Node.js."
+repo_url = "https://github.com/jcwang587/geddes"
+repo_name = "jcwang587/geddes"
+docs_dir = "docs"
+site_dir = "site"
+nav = [
+  { "Overview" = "index.md" },
+  { "Getting started" = "getting-started.md" },
+  { "Supported formats" = "formats.md" },
+  { "Reading patterns" = "reading-patterns.md" },
+  { "API reference" = "api.md" },
+  { "Development" = "development.md" },
+]
+
+[project.theme]
+custom_dir = "overrides"
+language = "en"
+features = ["content.code.copy", "navigation.footer", "navigation.top", "search.highlight"]
+
+[[project.theme.palette]]
+scheme = "default"
+primary = "indigo"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+scheme = "slate"
+primary = "indigo"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to light mode"
+
+[project.markdown_extensions]
+tables = {}
+toc.permalink = true
+pymdownx.highlight = {}
+pymdownx.superfences = {}

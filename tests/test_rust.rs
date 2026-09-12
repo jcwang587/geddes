@@ -72,11 +72,6 @@ fn reads_csv_from_path() {
     println!("IO time for csv: {:?}", start.elapsed());
     assert!(pattern.x.len() > 0);
     assert_eq!(pattern.x.len(), pattern.y.len());
-    assert!(pattern
-        .e
-        .as_ref()
-        .map(|v| v.len() == pattern.x.len())
-        .unwrap_or(true));
     println!("Loaded {} points from csv", pattern.x.len());
 }
 
@@ -96,10 +91,7 @@ fn reads_bruker_raw_from_bytes() {
     let path = PathBuf::from("tests/data/bruker_raw/bruker4_v5converter.raw");
     let start = Instant::now();
     let bytes = fs_read(&path).expect("Failed to read Bruker raw bytes");
-    println!(
-        "IO time (read bytes) for Bruker raw: {:?}",
-        start.elapsed()
-    );
+    println!("IO time (read bytes) for Bruker raw: {:?}", start.elapsed());
     let pattern = read_bytes(&bytes, "bruker4_v5converter.raw")
         .expect("Failed to load Bruker raw from bytes");
     assert!(pattern.x.len() > 0);
@@ -129,8 +121,7 @@ fn reads_xrdml_from_bytes() {
     let start = Instant::now();
     let bytes = fs_read(&path).expect("Failed to read file bytes");
     println!("IO time (read bytes) for xrdml: {:?}", start.elapsed());
-    let pattern =
-        read_bytes(&bytes, "sample.xrdml").expect("Failed to load xrdml from bytes");
+    let pattern = read_bytes(&bytes, "sample.xrdml").expect("Failed to load xrdml from bytes");
     assert!(pattern.x.len() > 0);
     assert_eq!(pattern.x.len(), pattern.y.len());
 }
@@ -155,11 +146,6 @@ fn reads_csv_from_bytes() {
     let pattern = read_bytes(&bytes, "sample.csv").expect("Failed to load csv from bytes");
     assert!(pattern.x.len() > 0);
     assert_eq!(pattern.x.len(), pattern.y.len());
-    assert!(pattern
-        .e
-        .as_ref()
-        .map(|v| v.len() == pattern.x.len())
-        .unwrap_or(true));
 }
 
 #[test]
@@ -218,7 +204,7 @@ fn bruker_raw_diffrac_eva_loads_with_axis() {
 
 #[test]
 fn pattern_new_rejects_mismatched_xy_lengths() {
-    let err = Pattern::new(vec![10.0], vec![100.0, 101.0], None)
+    let err = Pattern::new(vec![10.0], vec![100.0, 101.0])
         .expect_err("mismatched x/y lengths should be rejected");
 
     match err {
@@ -230,31 +216,14 @@ fn pattern_new_rejects_mismatched_xy_lengths() {
 }
 
 #[test]
-fn pattern_new_rejects_mismatched_e_length() {
-    let err = Pattern::new(
-        vec![10.0, 11.0],
-        vec![100.0, 101.0],
-        Some(vec![1.0]),
-    )
-    .expect_err("mismatched e length should be rejected");
-
-    match err {
-        Error::Parse(message) => {
-            assert!(message.contains("e must have the same length as x and y"));
-        }
-        other => panic!("expected parse error, got {other:?}"),
-    }
-}
-
-#[test]
 fn pattern_new_rejects_non_ascending_x() {
     for x in [vec![20.0, 10.0], vec![10.0, 10.0]] {
-        let err = Pattern::new(x, vec![100.0, 101.0], None)
+        let err = Pattern::new(x, vec![100.0, 101.0])
             .expect_err("non-ascending x values should be rejected");
 
         match err {
             Error::Parse(message) => {
-                assert!(message.contains("x values must be strictly increasing"));
+                assert!(message.contains("strictly increasing"));
             }
             other => panic!("expected parse error, got {other:?}"),
         }
@@ -263,20 +232,15 @@ fn pattern_new_rejects_non_ascending_x() {
 
 #[test]
 fn pattern_new_rejects_nan_x() {
-    let cases = [
-        vec![10.0, f64::NAN],
-        vec![f64::NAN],
-        vec![f64::NAN, 20.0],
-    ];
+    let cases = [vec![10.0, f64::NAN], vec![f64::NAN], vec![f64::NAN, 20.0]];
 
     for x in cases {
         let y = vec![100.0; x.len()];
-        let err = Pattern::new(x, y, None)
-            .expect_err("NaN x values should be rejected");
+        let err = Pattern::new(x, y).expect_err("NaN x values should be rejected");
 
         match err {
             Error::Parse(message) => {
-                assert!(message.contains("x values must be strictly increasing"));
+                assert!(message.contains("strictly increasing"));
             }
             other => panic!("expected parse error, got {other:?}"),
         }
@@ -284,7 +248,7 @@ fn pattern_new_rejects_nan_x() {
 }
 
 #[test]
-fn read_rejects_descending_xrdml_axis() {
+fn read_reverses_descending_xrdml_axis() {
     let data = br#"<?xml version="1.0" encoding="UTF-8"?>
 <xrdMeasurements xmlns="http://www.xrdml.com/XRDMeasurement/1.6">
   <xrdMeasurement>
@@ -301,13 +265,7 @@ fn read_rejects_descending_xrdml_axis() {
 </xrdMeasurements>
 "#;
 
-    let err = read_bytes(data.as_slice(), "descending.xrdml")
-        .expect_err("descending XRDML 2Theta axis should be rejected");
-
-    match err {
-        Error::Parse(message) => {
-            assert!(message.contains("x values must be strictly increasing"));
-        }
-        other => panic!("expected parse error, got {other:?}"),
-    }
+    let pattern = read_bytes(data.as_slice(), "descending.xrdml").unwrap();
+    assert_eq!(pattern.x, vec![10.0, 15.0, 20.0]);
+    assert_eq!(pattern.y, vec![102.0, 101.0, 100.0]);
 }

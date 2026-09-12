@@ -4,86 +4,51 @@
 [![PyPI](https://img.shields.io/pypi/v/geddes)](https://pypi.org/project/geddes/)
 [![npm](https://img.shields.io/npm/v/%40jcwang587%2Fgeddes)](https://www.npmjs.com/package/@jcwang587/geddes)
 
+Geddes reads XRD patterns into two arrays: **`x` is 2θ in degrees and `y` is intensity**.
+It is written in Rust, with Python and Node.js bindings. Read from a file or bytes,
+and select one pattern from files containing multiple scans or data blocks.
 
-A Rust XRD pattern parser with Python and Node.js bindings. Supports:
-- `.raw` (GSAS text or Bruker binary)
-- `.rasx` (Rigaku Zip archive)
-- `.xrdml` (Panalytical XML)
-- `.xy` / `.xye` (Space-separated ASCII)
-- `.csv` (Comma-separated values)
+## Supported formats
 
-## Rust Usage
+| Format | Extensions | Pattern selection |
+|---|---|---|
+| ASCII columns | `.xy`, `.xye`, `.csv`, `.dat`, `.prn`, `.txt` | Single pattern |
+| GSAS STD / ESD / FXYE | `.gsas`, `.gsa`, `.fxye`, `.gda`, `.xra`, `.raw` | Bank index |
+| Bruker RAW3 / RAW4 | `.raw` | Scan index |
+| Rigaku RAS | `.ras` | Scan index |
+| Rigaku RASX | `.rasx` | Scan index |
+| Bruker/Siemens UXD | `.uxd` | Scan index |
+| Bruker BRML | `.brml` | Scan index |
+| PANalytical XRDML | `.xrdml` | Scan index |
+| FIT2D/pyFAI CHI | `.chi` | Single pattern |
+| Powder CIF | `.cif` | Data-block name |
 
-Load from a file path:
+Returns x/y only, with finite values and an increasing 2θ axis. See the
+[format guide](docs/formats.md) for supported layouts and the
+[reading guide](docs/reading-patterns.md) for selection, intensity units, and validation.
 
-```rust
-use geddes::read;
+## Quick start
 
-fn main() {
-    let pattern = read("tests/data/xy/sample.xy").unwrap();
-    println!("{} {}", pattern.x.len(), pattern.y.len());
-}
+```sh
+pip install geddes
 ```
-
-Load from in-memory bytes (filename is used to infer the format):
-
-```rust
-use std::fs;
-
-use geddes::read_bytes;
-
-fn main() {
-    let data = fs::read("tests/data/xy/sample.xy").unwrap();
-    let pattern = read_bytes(&data, "sample.xy").unwrap();
-    println!("{} {}", pattern.x.len(), pattern.y.len());
-}
-```
-
-## Python Usage
-
-Load from a file path:
 
 ```python
 import geddes
 
-pattern = geddes.read("tests/data/xy/sample.xy")
-print(len(pattern.x), len(pattern.y))
+pattern = geddes.read("sample.xrdml")
+x, y = pattern.x, pattern.y
 ```
 
-Load from in-memory bytes (filename is used to infer the format):
+## Documentation
 
-```python
-import geddes
-
-with open("tests/data/xy/sample.xy", "rb") as f:
-    data = f.read()
-
-pattern = geddes.read_bytes(data, "sample.xy")
-print(len(pattern.x), len(pattern.y))
-```
-
-## Node.js Usage
-
-Load from a file path:
-
-```javascript
-const geddes = require('@jcwang587/geddes')
-
-const pattern = geddes.read('tests/data/xy/sample.xy')
-console.log(pattern.x.length, pattern.y.length)
-```
-
-Load from in-memory bytes (filename is used to infer the format):
-
-```javascript
-const fs = require('node:fs')
-const geddes = require('@jcwang587/geddes')
-
-const bytes = fs.readFileSync('tests/data/xy/sample.xy')
-const pattern = geddes.readBytes(bytes, 'sample.xy')
-console.log(pattern.x.length, pattern.y.length)
-```
+Start with the [documentation](docs/index.md) for
+[Python, Rust, and Node.js installation](docs/getting-started.md),
+[API reference](docs/api.md), and
+[testing, sample patterns, and benchmarks](docs/development.md).
+The documentation site is built with [Zensical](https://github.com/zensical/zensical).
 
 ## License
 
-MIT
+[MIT](LICENSE). Imported test files retain their upstream terms; see
+[fixture provenance](tests/data/formats/README.md).

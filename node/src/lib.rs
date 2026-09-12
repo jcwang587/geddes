@@ -1,5 +1,4 @@
 #![deny(clippy::all)]
-
 use napi::bindgen_prelude::Buffer;
 use napi_derive::napi;
 
@@ -7,13 +6,30 @@ use napi_derive::napi;
 pub struct Pattern {
     pub x: Vec<f64>,
     pub y: Vec<f64>,
-    pub e: Option<Vec<f64>>,
+}
+
+#[napi(object)]
+#[derive(Default)]
+pub struct ReadOptions {
+    pub scan: Option<u32>,
+    pub block: Option<String>,
 }
 
 impl From<geddes::Pattern> for Pattern {
     fn from(value: geddes::Pattern) -> Self {
-        let geddes::Pattern { x, y, e } = value;
-        Self { x, y, e }
+        Self {
+            x: value.x,
+            y: value.y,
+        }
+    }
+}
+
+impl From<ReadOptions> for geddes::ReadOptions {
+    fn from(value: ReadOptions) -> Self {
+        Self {
+            scan: value.scan.unwrap_or(0) as usize,
+            block: value.block,
+        }
     }
 }
 
@@ -22,13 +38,23 @@ fn to_napi_error(err: geddes::Error) -> napi::Error {
 }
 
 #[napi]
-pub fn read(path: String) -> napi::Result<Pattern> {
-    geddes::read(path).map(Into::into).map_err(to_napi_error)
+pub fn read(path: String, options: Option<ReadOptions>) -> napi::Result<Pattern> {
+    geddes::read_with_options(path, &options.unwrap_or_default().into())
+        .map(Into::into)
+        .map_err(to_napi_error)
 }
 
 #[napi]
-pub fn read_bytes(data: Buffer, filename: String) -> napi::Result<Pattern> {
-    geddes::read_bytes(data.as_ref(), &filename)
-        .map(Into::into)
-        .map_err(to_napi_error)
+pub fn read_bytes(
+    data: Buffer,
+    filename: String,
+    options: Option<ReadOptions>,
+) -> napi::Result<Pattern> {
+    geddes::read_bytes_with_options(
+        data.as_ref(),
+        &filename,
+        &options.unwrap_or_default().into(),
+    )
+    .map(Into::into)
+    .map_err(to_napi_error)
 }

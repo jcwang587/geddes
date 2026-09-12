@@ -1,0 +1,1 @@
+<xrdMeasurements><xrdMeasurement><scan scanAxis="Gonio"><dataPoints><positions axis="2Theta" unit="deg"><startPosition>10</startPosition><endPosition>10.5</endPosition></positions><counts unit="counts">4 81 144 9 1</counts></dataPoints></scan></xrdMeasurement></xrdMeasurements>
