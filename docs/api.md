@@ -4,11 +4,11 @@ Read functions return one `Pattern` with nonempty, equally sized `x` and `y`
 arrays. Positions are 2theta in degrees; intensities follow the
 [file's conventions](reading-patterns.md#intensity-values).
 
-`index` defaults to `0` and selects a scan, range, or bank by its zero-based
-position in file order.
-`block` selects a powder CIF block by a case-sensitive name substring; the
-default is the first block containing a profile. CIF and single-pattern formats
-require `index=0`. Byte loaders use `filename` as a format hint without opening it.
+| Argument | Meaning |
+|---|---|
+| `index` | Zero-based position of a scan, range, or bank in file order. Defaults to `0`; CIF and single-pattern formats require `0`. |
+| `block` | Case-sensitive substring of a powder CIF block name. Defaults to the first block containing a profile. |
+| `filename` | Format hint for byte loaders; no file is opened. |
 
 ## Python
 
@@ -20,11 +20,14 @@ geddes.Pattern(x, y)
 
 `path` and `filename` are strings; `data` is `bytes`. Pass `str(path)` for a path
 object. `index` is a nonnegative integer and `block` is a string or `None`.
-The returned pattern exposes `x` and `y` as Python lists. The constructor accepts
-two numeric sequences and requires finite values with strictly increasing x.
+The returned pattern exposes `x` and `y` as Python lists.
 
-File I/O failures raise `OSError`; format, parsing, and validation failures raise
-`ValueError`. Invalid argument types can raise `TypeError`.
+**Validation:** The constructor accepts two numeric sequences and requires
+finite values with strictly increasing x.
+
+**Errors:** File I/O failures raise `OSError`; format, parsing, and validation
+failures raise `ValueError`. Invalid argument types can raise `TypeError`.
+
 `geddes.__version__` gives the installed version.
 
 ## Rust
@@ -56,9 +59,12 @@ require `Read + Seek`. `filename` is `&str`; `options` is `&ReadOptions`.
 `ReadOptions::default()` selects index `0` with no block filter.
 
 All functions above return `Result<Pattern, geddes::Error>`. The non-exhaustive
-error enum covers I/O, ZIP, format, and parsing failures. `Pattern::new` requires
-finite values with strictly increasing x. Direct field mutation and Serde
-deserialization do not run its validation.
+error enum covers I/O, ZIP, format, and parsing failures.
+
+!!! note "Constructor validation"
+
+    `Pattern::new` requires finite values with strictly increasing x. Direct
+    field mutation and Serde deserialization do not run its validation.
 
 ## Node.js
 
@@ -75,6 +81,8 @@ function readBytes(
 Both functions are synchronous and throw on loading or parsing failures. Use a
 nonnegative integer representable as an unsigned 32-bit value for `index`.
 The result is a plain object; there is no Node.js `Pattern` constructor.
+
+## Migration
 
 For migration from the uncertainty API, remove `e` access and the third
 constructor argument. Patterns and serialized results contain only `x` and `y`.

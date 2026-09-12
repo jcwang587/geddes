@@ -82,18 +82,23 @@ Byte readers accept the same selection options. Rust also supports
 ## Intensity values
 
 Intensities retain their stored units. Counts per second are not converted to
-counts. XRDML raw `<counts>` are multiplied by supplied attenuation factors;
-processed XRDML `<intensities>` and BRML intensities are returned as stored.
-Rigaku's additional attenuator column is ignored.
+counts.
+
+| Input | Intensity handling |
+|---|---|
+| XRDML raw `<counts>` | Multiplied by supplied attenuation factors |
+| XRDML processed `<intensities>` and BRML | Returned as stored |
+| Rigaku | Additional attenuator column ignored |
 
 Geddes returns x/y only. It does not smooth, resample, subtract backgrounds,
 calculate uncertainties, or remove points with zero uncertainty or weight.
 
 ## Ordering and validation
 
-Returned arrays are finite, nonempty, and equally sized. Strictly descending
-scans are reversed as paired x/y arrays. Duplicate positions and axes that
-change direction are errors. Direct `Pattern` constructors require increasing x.
+- **Arrays:** Finite, nonempty, and equally sized.
+- **Strictly descending scans:** Reversed as paired x/y arrays.
+- **Invalid axes:** Duplicate positions or changes in direction raise errors.
+- **Constructors:** Direct `Pattern` constructors require increasing x.
 
 Geddes does not convert Q, d-spacing, or time-of-flight axes. See the
 [format limits](formats.md#limits) for inputs without a reliable axis declaration.
