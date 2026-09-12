@@ -17,23 +17,28 @@ first pattern. See [usage](reading-patterns.md#pattern-selection) for examples.
 | CHI | `.chi` | Single pattern | Four-line header and x/y rows matching the declared point count |
 | Powder CIF | `.cif` | Data block (`block`) | Measured powder profiles; corrected 2theta and processed total intensity take precedence when present |
 
-Geddes checks content before using the filename as a hint, distinguishing GSAS
-text from Bruker binary files that both use `.raw`. Text inputs support UTF-8
-with or without a byte-order mark and UTF-16 with one. ASCII files can include
-common comment lines and prose headers.
+## Reading behavior
 
-<a id="limits"></a>
+- **File detection:** Content takes precedence over the filename, distinguishing
+  GSAS text from Bruker binary files that both use `.raw`.
+- **Text encoding:** UTF-8 accepts an optional byte-order mark; UTF-16 requires
+  one. ASCII files can include common comment lines and prose headers.
+- **Intensity:** Stored units are retained, including cps. XRDML raw counts are
+  multiplied by supplied attenuation factors; reported XRDML intensities and
+  BRML values remain unchanged. See
+  [intensity handling](reading-patterns.md#intensity-values) for Rigaku
+  attenuators and other conventions.
 
-Bruker RAW support is limited to versions 3 and 4.
+## Limits
 
-Positions must represent 2theta in degrees. Geddes does not infer a wavelength
-or convert Q, d-spacing, or time-of-flight axes. A successful read cannot verify
-units absent from the file. Unsupported inputs include detector frames, DIF
-peak lists, structural CIFs without a profile, and non-2theta scans.
-GSAS `RALF`, `SLOG`, `TIME_MAP`, `COND`, and `CONQ` binnings, ALT/FXY records,
-and compressed STD records are unsupported.
+!!! note "2θ in degrees"
 
-Intensities retain their stored units, including cps. Geddes multiplies XRDML
-raw counts by supplied attenuation factors; reported XRDML intensities and BRML
-values remain unchanged. See [intensity handling](reading-patterns.md#intensity-values)
-for Rigaku attenuators and other conventions.
+    Positions must represent **2θ in degrees**. Geddes does not infer a
+    wavelength or convert Q, d-spacing, or time-of-flight axes. A successful
+    read cannot verify units absent from the file.
+
+- **Bruker RAW:** Only versions 3 and 4 are supported.
+- **Unsupported inputs:** Detector frames, DIF peak lists, structural CIFs
+  without a profile, and non-2θ scans.
+- **Unsupported GSAS variants:** `RALF`, `SLOG`, `TIME_MAP`, `COND`, and `CONQ`
+  binnings; `ALT`/`FXY` records; and compressed `STD` records.

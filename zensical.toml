@@ -38,6 +38,7 @@ toggle.icon = "lucide/moon"
 toggle.name = "Switch to light mode"
 
 [project.markdown_extensions]
+admonition = {}
 attr_list = {}
 tables = {}
 toc.permalink = true
