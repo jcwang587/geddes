@@ -34,17 +34,17 @@ const { x, y } = geddes.read('sample.xy')
 
 ## Supported formats
 
-| Format | Extensions | Selection |
-|---|---|---|
-| Text | `.xy`, `.xye`, `.csv`, `.dat`, `.prn`, `.txt` | Single pattern |
-| GSAS | `.gsas`, `.gsa`, `.fxye`, `.gda`, `.xra`, `.raw` | Bank (`index`) |
-| Bruker RAW | `.raw` (v3, v4) | Scan (`index`) |
-| RAS | `.ras` | Scan (`index`) |
-| RASX | `.rasx` | Scan (`index`) |
-| UXD | `.uxd` | Scan (`index`) |
-| BRML | `.brml` | Scan (`index`) |
-| XRDML | `.xrdml` | Scan (`index`) |
-| CHI | `.chi` | Single pattern |
-| Powder CIF | `.cif` | Data block (`block`) |
+| Format | Extensions |
+|---|---|
+| Text | `.xy`, `.xye`, `.csv`, `.dat`, `.prn`, `.txt` |
+| GSAS | `.gsas`, `.gsa`, `.fxye`, `.gda`, `.xra`, `.raw` |
+| Bruker RAW | `.raw` |
+| RAS | `.ras` |
+| RASX | `.rasx` |
+| UXD | `.uxd` |
+| BRML | `.brml` |
+| XRDML | `.xrdml` |
+| CHI | `.chi` |
+| Powder CIF | `.cif` |
 
 See the [documentation](https://jcwang587.github.io/geddes/) for installation, usage, and format limits.
