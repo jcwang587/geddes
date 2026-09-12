@@ -7,10 +7,6 @@ It is written in Rust, with Python and Node.js bindings.
 
 ### Python
 
-```sh
-pip install geddes
-```
-
 ```python
 import geddes
 
@@ -19,10 +15,6 @@ x, y = pattern.x, pattern.y
 ```
 
 ### Rust
-
-```sh
-cargo add geddes
-```
 
 ```rust
 fn main() -> Result<(), geddes::Error> {
@@ -33,10 +25,6 @@ fn main() -> Result<(), geddes::Error> {
 ```
 
 ### Node.js
-
-```sh
-npm install @jcwang587/geddes
-```
 
 ```javascript
 const geddes = require('@jcwang587/geddes')
