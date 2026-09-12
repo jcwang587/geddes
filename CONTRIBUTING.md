@@ -1,4 +1,4 @@
-# Development
+# Contributing to Geddes
 
 Run development commands from the Geddes repository root. The test suite checks
 file and byte loading, selections, format variants, malformed inputs, and the
@@ -6,20 +6,22 @@ x/y-only API.
 
 ## Run the tests
 
-Rust:
+### Python
 
-```sh
-cargo test
-```
-
-Python, after rebuilding the local extension:
+Rebuild the local extension in an activated Python environment, then run its tests:
 
 ```sh
 python -m pip install -e ".[test]"
 python -m pytest tests/test_python.py -q
 ```
 
-Node.js:
+### Rust
+
+```sh
+cargo test
+```
+
+### Node.js
 
 ```sh
 npm --prefix node install
@@ -27,8 +29,9 @@ npm --prefix node run build
 node node/test.cjs
 ```
 
-To test a separately built Node binding, set
+To test a separately built binding, set
 `GEDDES_BINDING=/absolute/path/to/geddes.node` before the Node command.
+
 See the [repository test guide](https://github.com/jcwang587/geddes/blob/main/tests/README.md)
 for more focused checks.
 
@@ -96,11 +99,13 @@ or substitute a scan to make results agree.
 | NumPy x/y | The same call plus extracting x/y and creating NumPy float64 arrays |
 | Bytes only | Open and read the file without parsing |
 
-Imports, reference loading, correctness checks, plotting, and logging are outside
-the timer. Repeated calls measure warm OS-cache performance, including language
-binding overhead. They do not measure cold disk access. Richer reader APIs may
-also calculate metadata or uncertainties, so timing comparisons describe each
-tool's public loading workload.
+### What the timing measures
+
+Repeated calls measure warm OS-cache performance, including language binding
+overhead. They do not measure cold disk access. Imports, reference loading,
+correctness checks, plotting, and harness logging are outside the timer.
+Richer reader APIs may also calculate metadata or uncertainties, so timing
+comparisons describe each tool's public loading workload.
 
 Small synthetic profiles primarily expose fixed overhead; larger experimental
 files exercise parsing and decompression. Interpret ratios per file and format,
@@ -111,14 +116,30 @@ and inspect exclusions before comparing timings.
 The documentation site uses Zensical. Create a dedicated environment and install
 the pinned documentation dependencies:
 
+### macOS / Linux
+
 ```sh
 python -m venv .venv-docs
 .venv-docs/bin/python -m pip install -r requirements-docs.txt
 .venv-docs/bin/zensical serve
 ```
 
-Build the site without starting the preview server:
-
 ```sh
 .venv-docs/bin/zensical build --strict
 ```
+
+### Windows (PowerShell)
+
+```powershell
+python -m venv .venv-docs
+.venv-docs\Scripts\python.exe -m pip install -r requirements-docs.txt
+.venv-docs\Scripts\zensical.exe serve
+```
+
+```powershell
+.venv-docs\Scripts\zensical.exe build --strict
+```
+
+The generated site is written to `site/`. The documentation workflow runs the
+same strict build and uploads the site as an artifact. Keep generated output
+and the documentation environment out of version control.

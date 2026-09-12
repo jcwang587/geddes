@@ -43,10 +43,9 @@ x, y = pattern.x, pattern.y
 ## Documentation
 
 Start with the [documentation](docs/index.md) for
-[Python, Rust, and Node.js installation](docs/getting-started.md),
+[Python, Rust, and Node.js installation](docs/index.md),
 [API reference](docs/api.md), and
-[testing, sample patterns, and benchmarks](docs/development.md).
-The documentation site is built with [Zensical](https://github.com/zensical/zensical).
+[usage](docs/reading-patterns.md).
 
 ## License
 

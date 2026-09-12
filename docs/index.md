@@ -1,49 +1,56 @@
 # Geddes
 
-Geddes loads XRD patterns into two arrays: **`x` is 2θ in degrees and `y` is intensity**.
-A shared Rust implementation provides the same readers to Rust, Python, and Node.js.
+Geddes reads XRD files into `x` (2θ in degrees) and `y` (intensity).
+It is available for Python, Rust, and Node.js.
 
-## What you can do
+## Installation and usage
 
-| Functionality | Support |
-|---|---|
-| Read pattern files | ASCII, GSAS, RAW3/RAW4, RAS, RASX, UXD, BRML, XRDML, CHI, and powder CIF |
-| Read in-memory data | Bytes in all three languages; seekable streams in Rust |
-| Select a pattern | Scan or bank index; powder CIF data-block name |
-| Detect the format | File content, with a filename hint when needed |
-| Obtain a consistent result | Two nonempty, equally sized arrays of finite values, with increasing 2θ |
+Save the [toy pattern](assets/samples/profile.xy) in your working directory,
+or use the path to your own file.
 
-Geddes focuses on pattern loading. It returns the measured x/y data without
-metadata or uncertainties and performs no smoothing, background subtraction,
-or resampling. The [reading guide](reading-patterns.md) explains intensity units,
-format corrections, and axis validation.
+=== "Python"
 
-## Read your first pattern
+    Python 3.10 or later:
 
-Install the Python package:
+    ```sh
+    pip install geddes
+    ```
 
-```sh
-pip install geddes
-```
+    ```python
+    import geddes
 
-Read a file:
+    pattern = geddes.read("profile.xy")
+    x, y = pattern.x, pattern.y
+    ```
 
-```python
-import geddes
+=== "Rust"
 
-pattern = geddes.read("sample.xrdml")
-x, y = pattern.x, pattern.y
-```
+    ```sh
+    cargo add geddes
+    ```
 
-See [Getting started](getting-started.md) for Rust and Node.js installation and
-examples, or [Development](development.md) to build and test the source.
+    ```rust
+    fn main() -> Result<(), geddes::Error> {
+        let pattern = geddes::read("profile.xy")?;
+        println!("{:?}\n{:?}", pattern.x, pattern.y);
+        Ok(())
+    }
+    ```
 
-## Explore the documentation
+=== "Node.js"
 
-| Guide | Contents |
-|---|---|
-| [Getting started](getting-started.md) | Installation and first examples in each language |
-| [Supported formats](formats.md) | Format variants, extensions, and limits |
-| [Reading patterns](reading-patterns.md) | Files, bytes, scan selection, intensity handling, and validation |
-| [API reference](api.md) | Functions, options, return values, and migration |
-| [Development](development.md) | Tests, sample patterns, benchmarks, and documentation builds |
+    Node.js 16 or later:
+
+    ```sh
+    npm install @jcwang587/geddes
+    ```
+
+    ```javascript
+    const geddes = require('@jcwang587/geddes')
+
+    const { x, y } = geddes.read('profile.xy')
+    ```
+
+The sample returns `x = [10, 11, 12]` and `y = [4, 9, 16]`.
+Each call reads one pattern. See [usage](reading-patterns.md) for scan selection
+and [formats](formats.md) for supported files.
