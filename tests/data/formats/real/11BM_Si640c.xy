@@ -1,16 +1,16 @@
-## Title:  From feb10/11bmb_4918.mda processed @ 10-02-26 15:06 
-## Run no. =               4918 
-## No. steps =             34000 
-## Scan time =             FEB 25  2010 17:14:00.580709 
+## Title:  From feb10/11bmb_4918.mda processed @ 10-02-26 15:06
+## Run no. =               4918
+## No. steps =             34000
+## Scan time =             FEB 25  2010 17:14:00.580709
 ## Sample name =           Silicon (Si)  NIST SRM 640c, certified cell length of 5.4311946 Angstroms
 ## Chemical formula =      Si
-## Start 2theta =          -6.0 
-## End 2theta =            28.0 
-## 2theta step=            0.001 
-## Time per step =         0.1 
-## Intensity scale =       5889.56694072 
-## Calibration file =      feb10/11bmb_4917.calib 
-## Calibrated wavelength = 0.412359 
+## Start 2theta =          -6.0
+## End 2theta =            28.0
+## 2theta step=            0.001
+## Time per step =         0.1
+## Intensity scale =       5889.56694072
+## Calibration file =      feb10/11bmb_4917.calib
+## Calibrated wavelength = 0.412359
 ##
 ## 2theta  intensity  sigma(intensity)
 1.996000  184.055647  19.735763
