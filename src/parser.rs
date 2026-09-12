@@ -45,6 +45,7 @@ fn one_pattern(options: &ReadOptions) -> Result<(), Error> {
     Ok(())
 }
 
+/// Detect XRDML by the root element's local name, ignoring namespace prefixes.
 fn has_xrdml_root(content: &str) -> bool {
     if !content.trim_start().starts_with('<') {
         return false;
@@ -53,10 +54,10 @@ fn has_xrdml_root(content: &str) -> bool {
     loop {
         match reader.read_event() {
             Ok(Event::Start(root) | Event::Empty(root)) => {
-                return root.local_name().as_ref() == b"xrdMeasurements";
+                return root.local_name().as_ref() == "xrdMeasurements";
             }
             Ok(Event::Decl(_) | Event::PI(_) | Event::Comment(_) | Event::DocType(_)) => {}
-            Ok(Event::Text(text)) if text.iter().all(u8::is_ascii_whitespace) => {}
+            Ok(Event::Text(text)) if text.as_bytes().iter().all(u8::is_ascii_whitespace) => {}
             _ => return false,
         }
     }

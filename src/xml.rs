@@ -51,14 +51,17 @@ fn unescape(value: &str) -> Result<String, Error> {
         .map_err(|e| error(format!("XML entity: {e}")))
 }
 
+/// Create a node with local names and normalized, unescaped attribute values.
 fn element(start: &BytesStart<'_>) -> Result<Element, Error> {
     let mut node = Element {
-        name: String::from_utf8_lossy(start.local_name().as_ref()).into_owned(),
+        name: start.local_name().as_ref().to_owned(),
         ..Element::default()
     };
     for attr in start.attributes() {
         let attr = attr.map_err(|e| error(format!("XML attribute: {e}")))?;
-        let key = String::from_utf8_lossy(attr.key.as_ref())
+        let key = attr
+            .key
+            .as_ref()
             .rsplit(':')
             .next()
             .unwrap_or("")
@@ -71,6 +74,9 @@ fn element(start: &BytesStart<'_>) -> Result<Element, Error> {
     Ok(node)
 }
 
+/// Decode vendor XML into a single element tree.
+///
+/// Resolve references once, preserve CDATA literally, and reject DTDs.
 fn document(bytes: &[u8]) -> Result<Element, Error> {
     let text = decode(bytes)?;
     let mut reader = Reader::from_str(&text);
@@ -87,18 +93,10 @@ fn document(bytes: &[u8]) -> Result<Element, Error> {
                 stack.push(element(&start)?);
             }
             Event::Empty(start) => stack.last_mut().unwrap().children.push(element(&start)?),
-            Event::Text(text) => {
-                let text = text.decode().map_err(|e| error(format!("XML text: {e}")))?;
-                stack.last_mut().unwrap().text.push_str(&text);
-            }
-            Event::CData(text) => {
-                let text = text
-                    .decode()
-                    .map_err(|e| error(format!("XML CDATA: {e}")))?;
-                stack.last_mut().unwrap().text.push_str(&text);
-            }
+            Event::Text(text) => stack.last_mut().unwrap().text.push_str(&text),
+            Event::CData(text) => stack.last_mut().unwrap().text.push_str(&text),
             Event::GeneralRef(reference) => {
-                let entity = format!("&{};", String::from_utf8_lossy(reference.as_ref()));
+                let entity = format!("&{};", reference.as_ref());
                 stack.last_mut().unwrap().text.push_str(&unescape(&entity)?);
             }
             Event::End(_) => {
