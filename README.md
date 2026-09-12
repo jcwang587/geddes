@@ -48,7 +48,3 @@ const { x, y } = geddes.read('sample.xy')
 | Powder CIF | `.cif` | Data-block name |
 
 See the [documentation](docs/index.md) for installation, usage, and format limits.
-
-## License
-
-MIT. Imported test data retain their original licenses.
