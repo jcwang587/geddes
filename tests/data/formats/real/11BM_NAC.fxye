@@ -1,18 +1,18 @@
 NAC /nov12/11bmb_1804
-# Run no. =               1804
-# No. steps =             54000
-# Scan time =             NOV 29, 2012 18:07:11.025644
-# Sample Comment =        NAC
-# User sample name =      1.5 mm diameter
+# Run no. =               1804 
+# No. steps =             54000 
+# Scan time =             NOV 29, 2012 18:07:11.025644 
+# Sample Comment =        NAC 
+# User sample name =      1.5 mm diameter 
 # Composition =           Na2Ca3Al2F14
-# Temp (K) =              298.0
-# Start 2theta (deg) =    -16.0
-# End 2theta (deg) =      38.0
-# 2theta step (deg) =     0.001
-# Time per step (sec) =   0.1
-# Intensity scale =       9383.82768362
-# Calibration file =      11bmb_1800_2thcorrected.calib
-# 2Theta correction subtracted
+# Temp (K) =              298.0 
+# Start 2theta (deg) =    -16.0 
+# End 2theta (deg) =      38.0 
+# 2theta step (deg) =     0.001 
+# Time per step (sec) =   0.1 
+# Intensity scale =       9383.82768362 
+# Calibration file =      11bmb_1800_2thcorrected.calib 
+# 2Theta correction subtracted 
 # Calibrated wavelength = 0.413909
 BANK  1    59497   59497 CONS      50.00      0.10 0 0 FXYE
              50        239.933       16.08

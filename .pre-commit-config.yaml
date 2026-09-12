@@ -6,4 +6,7 @@ repos:
       - id: check-toml
       - id: check-yaml
       - id: end-of-file-fixer
+        # Preserve imported bytes and their recorded provenance hashes.
+        exclude: ^tests/data/formats/(real|licenses)/
       - id: trailing-whitespace
+        exclude: ^tests/data/formats/(real|licenses)/
