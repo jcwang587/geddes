@@ -1,8 +1,8 @@
 # Supported formats
 
-Geddes loads one profile at a time. Use `scan` for a zero-based scan, range, or
-bank index and `block` for powder CIF selection; the default is the first
-pattern. See [usage](reading-patterns.md#scan-and-block-selection) for examples.
+Geddes loads one profile at a time. Use `index` for a scan, range, or bank's
+zero-based position and `block` for powder CIF selection; the default is the
+first pattern. See [usage](reading-patterns.md#pattern-selection) for examples.
 
 | Format | Common extensions | Supported variants |
 |---|---|---|

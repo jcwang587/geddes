@@ -4,21 +4,22 @@ Read functions return one `Pattern` with nonempty, equally sized `x` and `y`
 arrays. Positions are 2theta in degrees; intensities follow the
 [file's conventions](reading-patterns.md#intensity-values).
 
-`scan` defaults to `0` and selects a zero-based scan, range, or bank index.
+`index` defaults to `0` and selects a scan, range, or bank by its zero-based
+position in file order.
 `block` selects a powder CIF block by a case-sensitive name substring; the
-default is the first block containing a profile. Formats with one pattern
-require `scan=0`. Byte loaders use `filename` as a format hint without opening it.
+default is the first block containing a profile. CIF and single-pattern formats
+require `index=0`. Byte loaders use `filename` as a format hint without opening it.
 
 ## Python
 
 ```python
-geddes.read(path, *, scan=0, block=None)
-geddes.read_bytes(data, filename, *, scan=0, block=None)
+geddes.read(path, *, index=0, block=None)
+geddes.read_bytes(data, filename, *, index=0, block=None)
 geddes.Pattern(x, y)
 ```
 
 `path` and `filename` are strings; `data` is `bytes`. Pass `str(path)` for a path
-object. `scan` is a nonnegative integer and `block` is a string or `None`.
+object. `index` is a nonnegative integer and `block` is a string or `None`.
 The returned pattern exposes `x` and `y` as Python lists. The constructor accepts
 two numeric sequences and requires finite values with strictly increasing x.
 
@@ -35,7 +36,7 @@ pub struct Pattern {
 }
 
 pub struct ReadOptions {
-    pub scan: usize,
+    pub index: usize,
     pub block: Option<String>,
 }
 ```
@@ -52,7 +53,7 @@ pub struct ReadOptions {
 
 Paths accept `impl AsRef<Path>`, bytes accept `impl AsRef<[u8]>`, and streams
 require `Read + Seek`. `filename` is `&str`; `options` is `&ReadOptions`.
-`ReadOptions::default()` selects scan `0` with no block filter.
+`ReadOptions::default()` selects index `0` with no block filter.
 
 All functions above return `Result<Pattern, geddes::Error>`. The non-exhaustive
 error enum covers I/O, ZIP, format, and parsing failures. `Pattern::new` requires
@@ -63,7 +64,7 @@ deserialization do not run its validation.
 
 ```typescript
 interface Pattern { x: number[]; y: number[] }
-interface ReadOptions { scan?: number; block?: string }
+interface ReadOptions { index?: number; block?: string }
 
 function read(path: string, options?: ReadOptions): Pattern
 function readBytes(
@@ -72,7 +73,7 @@ function readBytes(
 ```
 
 Both functions are synchronous and throw on loading or parsing failures. Use a
-nonnegative integer representable as an unsigned 32-bit value for `scan`.
+nonnegative integer representable as an unsigned 32-bit value for `index`.
 The result is a plain object; there is no Node.js `Pattern` constructor.
 
 For migration from the uncertainty API, remove `e` access and the third

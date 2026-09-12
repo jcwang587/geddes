@@ -11,7 +11,7 @@ pub struct Pattern {
 #[napi(object)]
 #[derive(Default)]
 pub struct ReadOptions {
-    pub scan: Option<u32>,
+    pub index: Option<u32>,
     pub block: Option<String>,
 }
 
@@ -27,7 +27,7 @@ impl From<geddes::Pattern> for Pattern {
 impl From<ReadOptions> for geddes::ReadOptions {
     fn from(value: ReadOptions) -> Self {
         Self {
-            scan: value.scan.unwrap_or(0) as usize,
+            index: value.index.unwrap_or(0) as usize,
             block: value.block,
         }
     }

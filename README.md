@@ -37,14 +37,14 @@ const { x, y } = geddes.read('sample.xy')
 | Format | Extensions | Selection |
 |---|---|---|
 | Text | `.xy`, `.xye`, `.csv`, `.dat`, `.prn`, `.txt` | Single pattern |
-| GSAS | `.gsas`, `.gsa`, `.fxye`, `.gda`, `.xra`, `.raw` | Bank index |
-| Bruker RAW | `.raw` (v3, v4) | Scan index |
-| RAS | `.ras` | Scan index |
-| RASX | `.rasx` | Scan index |
-| UXD | `.uxd` | Scan index |
-| BRML | `.brml` | Scan index |
-| XRDML | `.xrdml` | Scan index |
+| GSAS | `.gsas`, `.gsa`, `.fxye`, `.gda`, `.xra`, `.raw` | Bank (`index`) |
+| Bruker RAW | `.raw` (v3, v4) | Scan (`index`) |
+| RAS | `.ras` | Scan (`index`) |
+| RASX | `.rasx` | Scan (`index`) |
+| UXD | `.uxd` | Scan (`index`) |
+| BRML | `.brml` | Scan (`index`) |
+| XRDML | `.xrdml` | Scan (`index`) |
 | CHI | `.chi` | Single pattern |
-| Powder CIF | `.cif` | Data-block name |
+| Powder CIF | `.cif` | Data block (`block`) |
 
 See the [documentation](https://jcwang587.github.io/geddes/) for installation, usage, and format limits.

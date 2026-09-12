@@ -171,7 +171,7 @@ fn gsas_bank_selection_is_zero_based() {
         bytes,
         "pattern.gsas",
         &ReadOptions {
-            scan: 1,
+            index: 1,
             block: None,
         },
     )
@@ -182,7 +182,7 @@ fn gsas_bank_selection_is_zero_based() {
         bytes,
         "pattern.gsas",
         &ReadOptions {
-            scan: 2,
+            index: 2,
             block: None
         }
     )
@@ -232,7 +232,7 @@ fn ras_scan_selection_and_descending_reversal() {
         bytes,
         "profile.ras",
         &ReadOptions {
-            scan: 1,
+            index: 1,
             block: None,
         },
     )
@@ -243,7 +243,7 @@ fn ras_scan_selection_and_descending_reversal() {
         bytes,
         "profile.ras",
         &ReadOptions {
-            scan: 2,
+            index: 2,
             block: None
         }
     )
@@ -278,12 +278,12 @@ fn ras_ignores_legacy_encoded_comment_text() {
 #[test]
 fn uxd_selects_ranges_and_inherits_axis_parameters() {
     let bytes = include_bytes!("data/formats/text/profile.uxd");
-    for scan in [1, 2] {
-        let p = read_bytes_with_options(bytes, "profile.uxd", &ReadOptions { scan, block: None })
+    for index in [1, 2] {
+        let p = read_bytes_with_options(bytes, "profile.uxd", &ReadOptions { index, block: None })
             .unwrap();
         assert_eq!(
             p.x,
-            if scan == 1 {
+            if index == 1 {
                 vec![20.0, 20.25, 20.5]
             } else {
                 vec![20.0, 20.125, 20.25]
@@ -332,7 +332,7 @@ fn uxd_selects_descending_range_with_its_own_start_and_step() {
         bytes,
         "ranges.uxd",
         &ReadOptions {
-            scan: 1,
+            index: 1,
             block: None,
         },
     )
@@ -407,7 +407,7 @@ fn pdcif_selects_matching_named_profile_block() {
         bytes,
         "profile.cif",
         &ReadOptions {
-            scan: 0,
+            index: 0,
             block: Some("_other".into()),
         },
     )
@@ -418,7 +418,7 @@ fn pdcif_selects_matching_named_profile_block() {
         bytes,
         "profile.cif",
         &ReadOptions {
-            scan: 0,
+            index: 0,
             block: Some("missing".into())
         }
     )

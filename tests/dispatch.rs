@@ -92,7 +92,7 @@ fn peak_lists_and_unavailable_scans_are_rejected() {
         xy,
         "a.xy",
         &ReadOptions {
-            scan: 1,
+            index: 1,
             block: None
         }
     )

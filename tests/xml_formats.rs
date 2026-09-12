@@ -11,8 +11,8 @@ fn archive(members: &[(&str, &str)]) -> Vec<u8> {
     zip.finish().unwrap().into_inner()
 }
 
-fn selected(bytes: &[u8], name: &str, scan: usize) -> geddes::Pattern {
-    read_bytes_with_options(bytes, name, &ReadOptions { scan, block: None }).unwrap()
+fn selected(bytes: &[u8], name: &str, index: usize) -> geddes::Pattern {
+    read_bytes_with_options(bytes, name, &ReadOptions { index, block: None }).unwrap()
 }
 
 fn xrdml_scan(axis: &str, positions: &str, values: &str) -> String {
@@ -118,7 +118,7 @@ fn xrdml_selects_scans_across_measurements_without_merging() {
         source,
         "multi.xrdml",
         &ReadOptions {
-            scan: 2,
+            index: 2,
             block: None
         }
     )
@@ -184,7 +184,7 @@ fn rasx_follows_manifest_order_and_reads_only_the_selected_profile() {
         bytes,
         "many.rasx",
         &ReadOptions {
-            scan: 2,
+            index: 2,
             block: None
         }
     )
@@ -295,7 +295,7 @@ fn brml_scan_selection_uses_manifest_order_instead_of_zip_order() {
         bytes,
         "many.brml",
         &ReadOptions {
-            scan: 2,
+            index: 2,
             block: None
         }
     )

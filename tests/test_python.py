@@ -20,13 +20,56 @@ def test_complete_fixture_arrays_and_bytes_api(fixture):
         reference = list(csv.DictReader(stream))
     expected_x = [float(r["x"]) for r in reference]
     expected_y = [float(r["y"]) for r in reference]
-    options = {"scan": fixture["scan"], "block": fixture["block"]}
+    options = {"index": fixture["scan"], "block": fixture["block"]}
     for pattern in (geddes.read(str(path), **options),
                     geddes.read_bytes(path.read_bytes(), path.name, **options)):
         assert not hasattr(pattern, "e")
         assert len(pattern.x) == fixture["points"]
         assert pattern.x == pytest.approx(expected_x, rel=fixture["rtol"], abs=fixture["atol"])
         assert pattern.y == pytest.approx(expected_y, rel=fixture["rtol"], abs=fixture["atol"])
+
+
+@pytest.mark.parametrize("filename,data", [
+    ("banks.gsas", b"BANK 1 2 1 CONS 1000 100 STD\n4 9\nBANK 7 2 1 CONS 2000 50 STD\n25 36\n"),
+    ("ranges.uxd", b"_DRIVE='COUPLED'\n_START=10\n_STEPSIZE=1\n_COUNTS\n4 9\n_START=20\n_STEPSIZE=.5\n_COUNTS\n25 36\n"),
+])
+@pytest.mark.parametrize("from_bytes", [False, True])
+def test_index_selects_pattern_by_position(tmp_path, filename, data, from_bytes):
+    path = tmp_path / filename
+    path.write_bytes(data)
+
+    def load(**options):
+        if from_bytes:
+            return geddes.read_bytes(data, filename, **options)
+        return geddes.read(str(path), **options)
+
+    for options in ({}, {"index": 0}):
+        first = load(**options)
+        assert first.x == [10.0, 11.0]
+        assert first.y == [4.0, 9.0]
+    second = load(index=1)
+    assert second.x == [20.0, 20.5]
+    assert second.y == [25.0, 36.0]
+    with pytest.raises(ValueError, match="out of range"):
+        load(index=2)
+
+
+@pytest.mark.parametrize("from_bytes", [False, True])
+def test_index_rejects_invalid_values_and_unavailable_patterns(tmp_path, from_bytes):
+    data = b"10 4\n11 9\n"
+    path = tmp_path / "single.xy"
+    path.write_bytes(data)
+
+    def load(index):
+        if from_bytes:
+            return geddes.read_bytes(data, path.name, index=index)
+        return geddes.read(str(path), index=index)
+
+    for index in (-1, 0.5, "1"):
+        with pytest.raises((TypeError, OverflowError)):
+            load(index)
+    with pytest.raises(ValueError, match="index must be 0"):
+        load(1)
 
 
 def _assert_pattern(pattern):

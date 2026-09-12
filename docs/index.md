@@ -52,5 +52,5 @@ or use the path to your own file.
     ```
 
 The sample returns `x = [10, 11, 12]` and `y = [4, 9, 16]`.
-Each call reads one pattern. See [usage](reading-patterns.md) for scan selection
+Each call reads one pattern. See [usage](reading-patterns.md) for pattern selection
 and [formats](formats.md) for supported files.

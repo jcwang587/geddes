@@ -19,20 +19,20 @@ impl Pattern {
 }
 
 /// Load one XRD pattern as x (2theta degrees) and y (intensity).
-#[pyfunction(name = "read", signature = (path, *, scan=0, block=None))]
-fn read_py(path: &str, scan: usize, block: Option<String>) -> PyResult<Pattern> {
-    read_with_options(path, &ReadOptions { scan, block }).map_err(to_py_err)
+#[pyfunction(name = "read", signature = (path, *, index=0, block=None))]
+fn read_py(path: &str, index: usize, block: Option<String>) -> PyResult<Pattern> {
+    read_with_options(path, &ReadOptions { index, block }).map_err(to_py_err)
 }
 
 /// Load bytes using content detection and a filename hint.
-#[pyfunction(signature = (data, filename, *, scan=0, block=None))]
+#[pyfunction(signature = (data, filename, *, index=0, block=None))]
 fn read_bytes(
     data: &Bound<'_, PyBytes>,
     filename: &str,
-    scan: usize,
+    index: usize,
     block: Option<String>,
 ) -> PyResult<Pattern> {
-    read_bytes_with_options(data.as_bytes(), filename, &ReadOptions { scan, block })
+    read_bytes_with_options(data.as_bytes(), filename, &ReadOptions { index, block })
         .map_err(to_py_err)
 }
 

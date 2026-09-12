@@ -103,7 +103,7 @@ fn raw4_reads_declared_strides_and_selects_scans() {
         &bytes,
         "test.raw",
         &ReadOptions {
-            scan: 1,
+            index: 1,
             block: None,
         },
     )
@@ -114,7 +114,7 @@ fn raw4_reads_declared_strides_and_selects_scans() {
         &bytes,
         "test.raw",
         &ReadOptions {
-            scan: 2,
+            index: 2,
             block: None
         }
     )
@@ -132,7 +132,7 @@ fn raw3_measured_positions_extra_records_and_multiple_scans() {
         &bytes,
         "test.raw",
         &ReadOptions {
-            scan: 1,
+            index: 1,
             block: None,
         },
     )

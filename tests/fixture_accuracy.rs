@@ -42,7 +42,7 @@ fn every_fixture_matches_every_reference_point_from_path_and_bytes() {
             fixture.id
         );
         let options = ReadOptions {
-            scan: fixture.scan,
+            index: fixture.scan,
             block: fixture.block,
         };
         let path_pattern = read_with_options(&source, &options)

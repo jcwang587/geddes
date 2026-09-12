@@ -36,10 +36,10 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<Cow<'_, str>, Error> {
     Ok(String::from_utf8_lossy(bytes))
 }
 
-fn one_scan(options: &ReadOptions) -> Result<(), Error> {
-    if options.scan != 0 {
+fn one_pattern(options: &ReadOptions) -> Result<(), Error> {
+    if options.index != 0 {
         return Err(Error::Parse(
-            "this format has one pattern; scan must be 0".into(),
+            "this format has one pattern; index must be 0".into(),
         ));
     }
     Ok(())
@@ -77,7 +77,7 @@ pub(crate) fn parse(
         || bytes.starts_with(b"RAW2")
         || bytes.starts_with(b"RAW ") && bytes[..bytes.len().min(256)].contains(&0)
     {
-        return bruker::parse_bruker_raw(bytes, options.scan);
+        return bruker::parse_bruker_raw(bytes, options.index);
     }
     if bytes.starts_with(b"PK\x03\x04") || bytes.starts_with(b"PK\x05\x06") {
         let archive = zip::ZipArchive::new(Cursor::new(bytes))?;
@@ -85,13 +85,13 @@ pub(crate) fn parse(
             .file_names()
             .any(|n| n.ends_with("DataContainer.xml"))
         {
-            return xml::parse_brml(bytes, options.scan);
+            return xml::parse_brml(bytes, options.index);
         }
         if archive
             .file_names()
             .any(|n| n == "root.xml" || (n.contains("Profile") && n.ends_with(".txt")))
         {
-            return xml::parse_rasx(bytes, options.scan);
+            return xml::parse_rasx(bytes, options.index);
         }
         return Err(Error::UnknownFormat);
     }
@@ -106,29 +106,29 @@ pub(crate) fn parse(
     }
     // All strong content recognizers run before extension fallbacks.
     if has_xrdml_root(&content) {
-        return xml::parse_xrdml(bytes, options.scan);
+        return xml::parse_xrdml(bytes, options.index);
     }
     if head.lines().any(|l| {
         l.trim_start().starts_with("*RAS_DATA_START")
             || l.trim_start().starts_with("*RAS_HEADER_START")
     }) {
-        return text::parse_ras(bytes, options.scan);
+        return text::parse_ras(bytes, options.index);
     }
     if head.lines().any(|l| l.trim_start().starts_with("data_")) && head.contains("_pd_") {
-        one_scan(options)?;
+        one_pattern(options)?;
         return text::parse_pdcif(bytes, options.block.as_deref());
     }
     if head
         .lines()
         .any(|l| l.split_whitespace().next() == Some("BANK"))
     {
-        return text::parse_gsas(bytes, options.scan);
+        return text::parse_gsas(bytes, options.index);
     }
     if head
         .lines()
         .any(|l| l.trim_start().starts_with("_DRIVE=") || l.trim_start().starts_with("_DRIVE ="))
     {
-        return text::parse_uxd(bytes, options.scan);
+        return text::parse_uxd(bytes, options.index);
     }
     let lines: Vec<&str> = head.lines().take(5).collect();
     let chi_header = lines.len() >= 5
@@ -156,22 +156,22 @@ pub(crate) fn parse(
                     )
         };
     if chi_header {
-        one_scan(options)?;
+        one_pattern(options)?;
         return text::parse_chi(bytes);
     }
     match ext.as_str() {
-        "xrdml" => return xml::parse_xrdml(bytes, options.scan),
-        "ras" => return text::parse_ras(bytes, options.scan),
-        "uxd" => return text::parse_uxd(bytes, options.scan),
+        "xrdml" => return xml::parse_xrdml(bytes, options.index),
+        "ras" => return text::parse_ras(bytes, options.index),
+        "uxd" => return text::parse_uxd(bytes, options.index),
         "gsas" | "gsa" | "fxye" | "gda" | "xra" | "raw" => {
-            return text::parse_gsas(bytes, options.scan)
+            return text::parse_gsas(bytes, options.index)
         }
         "cif" => {
-            one_scan(options)?;
+            one_pattern(options)?;
             return text::parse_pdcif(bytes, options.block.as_deref());
         }
         "chi" => {
-            one_scan(options)?;
+            one_pattern(options)?;
             return text::parse_chi(bytes);
         }
         "rasx" | "brml" => {
@@ -203,6 +203,6 @@ pub(crate) fn parse(
         }
         _ => {}
     }
-    one_scan(options)?;
+    one_pattern(options)?;
     text::parse_xy(bytes)
 }

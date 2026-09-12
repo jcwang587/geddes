@@ -10,6 +10,6 @@ export declare function read(path: string, options?: ReadOptions | undefined | n
 export declare function readBytes(data: Buffer, filename: string, options?: ReadOptions | undefined | null): Pattern
 
 export interface ReadOptions {
-  scan?: number
+  index?: number
   block?: string
 }

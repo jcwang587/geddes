@@ -61,9 +61,10 @@ impl Pattern {
 /// Choose one pattern without adding metadata to the returned arrays.
 #[derive(Debug, Clone, Default)]
 pub struct ReadOptions {
-    /// Zero-based scan/bank index for GSAS, RAW, RAS, RASX, UXD, XRDML and BRML.
-    pub scan: usize,
-    /// Substring identifying a powder CIF data block. First matching profile by default.
+    /// Zero-based pattern position (scan, range, or GSAS bank). Defaults to 0.
+    pub index: usize,
+    /// Case-sensitive substring of a powder CIF data block name.
+    /// Selects the first matching profile; no filter by default.
     pub block: Option<String>,
 }
 
@@ -77,7 +78,7 @@ pub fn read<P: AsRef<Path>>(path: P) -> Result<Pattern, Error> {
     read_with_options(path, &ReadOptions::default())
 }
 
-/// Load one selected scan or powder CIF block from a file.
+/// Load one selected pattern from a file.
 pub fn read_with_options<P: AsRef<Path>>(path: P, options: &ReadOptions) -> Result<Pattern, Error> {
     let path = path.as_ref();
     let bytes = std::fs::read(path)?;

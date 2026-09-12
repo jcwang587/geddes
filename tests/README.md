@@ -55,7 +55,8 @@ GEDDES_BINDING=/absolute/path/to/geddes.node node node/test.cjs
 ```
 
 The Node API returns `{ x, y }`. Both `read` and `readBytes` accept an optional
-`{ scan, block }` selection object; examples are in the [main README](../README.md).
+`{ index, block }` selection object; examples are in the
+[usage guide](../docs/reading-patterns.md#pattern-selection).
 
 ## Release packages
 

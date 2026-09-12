@@ -1,10 +1,10 @@
 # Usage
 
-## Scan and block selection
+## Pattern selection
 
 | Option | Meaning | Default |
 |---|---|---|
-| `scan` | Zero-based scan, range, or GSAS bank index | `0` (first pattern) |
+| `index` | Zero-based position of a scan, range, or GSAS bank | `0` (first pattern) |
 | `block` | Case-sensitive substring of a powder CIF block name | First block containing a profile |
 
 Select the second scan or a measured CIF block:
@@ -14,7 +14,7 @@ Select the second scan or a measured CIF block:
     ```python
     import geddes
 
-    pattern = geddes.read("measurement.rasx", scan=1)
+    pattern = geddes.read("measurement.rasx", index=1)
     pattern = geddes.read("standard.cif", block="_meas")
     ```
 
@@ -22,7 +22,7 @@ Select the second scan or a measured CIF block:
 
     ```rust
     fn main() -> Result<(), geddes::Error> {
-        let options = geddes::ReadOptions { scan: 1, block: None };
+        let options = geddes::ReadOptions { index: 1, block: None };
         let pattern = geddes::read_with_options("measurement.rasx", &options)?;
 
         let options = geddes::ReadOptions {
@@ -38,12 +38,13 @@ Select the second scan or a measured CIF block:
     ```javascript
     const geddes = require('@jcwang587/geddes')
 
-    const pattern = geddes.read('measurement.rasx', { scan: 1 })
+    const pattern = geddes.read('measurement.rasx', { index: 1 })
     const measured = geddes.read('standard.cif', { block: '_meas' })
     ```
 
-Scans are read in file order. A missing selection raises an error. Single-pattern
-formats require `scan=0`; a CIF substring selects the first matching profile block.
+Indices follow file order. An out-of-range index or unmatched block raises an error. CIF and
+single-pattern formats require `index=0`; a CIF substring selects the first
+matching profile block.
 
 ## Reading bytes
 
