@@ -90,6 +90,37 @@ fn xrdml_supports_position_layouts_namespaces_entities_cdata_and_bom() {
 }
 
 #[test]
+fn xrdml_detects_utf16_xml_and_preserves_cdata_and_entities() {
+    let source = concat!(
+        "<?xml version=\"1.0\" encoding=\"UTF-16\"?>\r\n",
+        "<!-- Measured 2θ profile -->\r\n",
+        "<x:xrdMeasurements xmlns:x=\"urn:test\"><x:xrdMeasurement>",
+        "<x:scan scanAxis=\"&#71;onio\"><x:dataPoints>",
+        "<x:positions axis=\"2Theta\" unit=\"°\">",
+        "<x:listPositions>10 10.5 11</x:listPositions></x:positions>",
+        "<x:counts><![CDATA[2 3]]>&#32;4</x:counts>",
+        "</x:dataPoints></x:scan></x:xrdMeasurement></x:xrdMeasurements>",
+    );
+    for little_endian in [true, false] {
+        let mut bytes = if little_endian {
+            vec![0xff, 0xfe]
+        } else {
+            vec![0xfe, 0xff]
+        };
+        for word in source.encode_utf16() {
+            bytes.extend(if little_endian {
+                word.to_le_bytes()
+            } else {
+                word.to_be_bytes()
+            });
+        }
+        let p = read_bytes(bytes, "renamed.xy").unwrap();
+        assert_eq!(p.x, [10., 10.5, 11.]);
+        assert_eq!(p.y, [2., 3., 4.]);
+    }
+}
+
+#[test]
 fn xrdml_accepts_escaped_ampersands_in_attributes() {
     for description in [
         "Research &amp; Development",
@@ -278,6 +309,27 @@ fn brml_reads_dynamic_columns_and_chooses_measured_route() {
         "ambiguous.brml"
     )
     .is_err());
+}
+
+#[test]
+fn brml_preserves_literal_entities_in_text_and_cdata_references() {
+    let data = raw_data(&brml_route("Measured", TWO_THETA, 1, &[4, 81]));
+    for reference in [
+        "Experiment0/RawData&amp;amp;µ.xml",
+        "<![CDATA[Experiment0/RawData&amp;µ.xml]]>",
+    ] {
+        let manifest = format!(
+            "<DataContainer><RawDataReferenceList><string>{reference}</string>\
+            </RawDataReferenceList></DataContainer>"
+        );
+        let bytes = archive(&[
+            ("Experiment0/DataContainer.xml", &manifest),
+            ("Experiment0/RawData&amp;µ.xml", &data),
+        ]);
+        let p = read_bytes(bytes, "references.brml").unwrap();
+        assert_eq!(p.x, [10., 10.125]);
+        assert_eq!(p.y, [4., 81.]);
+    }
 }
 
 #[test]
