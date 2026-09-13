@@ -1,5 +1,9 @@
 # Geddes
 
+[![Crates.io](https://img.shields.io/crates/v/geddes)](https://crates.io/crates/geddes)
+[![PyPI](https://img.shields.io/pypi/v/geddes)](https://pypi.org/project/geddes/)
+[![npm](https://img.shields.io/npm/v/%40jcwang587%2Fgeddes)](https://www.npmjs.com/package/@jcwang587/geddes)
+
 Geddes reads XRD files into two arrays: `x` (2θ in degrees) and `y` (intensity).
 It is written in Rust, with Python and Node.js bindings.
 
