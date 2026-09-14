@@ -77,7 +77,8 @@ Pass the file contents and a filename hint. The filename does not open a file.
     ```
 
 Byte readers accept the same selection options. Rust also supports
-`Read + Seek` streams through [`from_reader`](api.md#rust).
+`Read + Seek` streams through `from_reader`; see [Rust](api.md#rust) in the
+API reference.
 
 ## Intensity values
 
@@ -100,8 +101,9 @@ calculate uncertainties, or remove points with zero uncertainty or weight.
 - **Invalid axes:** Duplicate positions or changes in direction raise errors.
 - **Constructors:** Direct `Pattern` constructors require increasing x.
 
-Geddes does not convert Q, d-spacing, or time-of-flight axes. See the
-[format limits](formats.md#limits) for inputs without a reliable axis declaration.
+Geddes does not convert Q, d-spacing, or time-of-flight axes. See
+[Limits](formats.md#limits) in Supported formats for inputs without a reliable
+axis declaration.
 
 ## Using the arrays
 

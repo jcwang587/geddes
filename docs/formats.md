@@ -2,7 +2,8 @@
 
 Geddes loads one profile at a time. Use `index` for a scan, range, or bank's
 zero-based position and `block` for powder CIF selection; the default is the
-first pattern. See [usage](reading-patterns.md#pattern-selection) for examples.
+first pattern. See [Pattern selection](reading-patterns.md#pattern-selection)
+for examples.
 
 | Format | Common extensions | Selection | Supported variants |
 |---|---|---|---|
@@ -26,7 +27,7 @@ first pattern. See [usage](reading-patterns.md#pattern-selection) for examples.
 - **Intensity:** Stored units are retained, including cps. XRDML raw counts are
   multiplied by supplied attenuation factors; reported XRDML intensities and
   BRML values remain unchanged. See
-  [intensity handling](reading-patterns.md#intensity-values) for Rigaku
+  [Intensity values](reading-patterns.md#intensity-values) for Rigaku
   attenuators and other conventions.
 
 ## Limits

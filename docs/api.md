@@ -1,8 +1,8 @@
 # API reference
 
 Read functions return one `Pattern` with nonempty, equally sized `x` and `y`
-arrays. Positions are 2theta in degrees; intensities follow the
-[file's conventions](reading-patterns.md#intensity-values).
+arrays. Positions are 2theta in degrees. Intensities keep the units stored in
+the file; see [Intensity values](reading-patterns.md#intensity-values).
 
 | Argument | Meaning |
 |---|---|
