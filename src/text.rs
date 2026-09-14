@@ -727,6 +727,7 @@ pub(crate) fn parse_pdcif(bytes: &[u8], selection: Option<&str>) -> Result<Parse
                 "_pd_proc_intensity_total",
                 "_pd_meas_intensity_total",
                 "_pd_meas_counts_total",
+                "_pd_proc_intensity_net",
             ],
         ) else {
             continue;
