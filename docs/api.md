@@ -81,8 +81,3 @@ function readBytes(
 Both functions are synchronous and throw on loading or parsing failures. Use a
 nonnegative integer representable as an unsigned 32-bit value for `index`.
 The result is a plain object; there is no Node.js `Pattern` constructor.
-
-## Migration
-
-For migration from the uncertainty API, remove `e` access and the third
-constructor argument. Patterns and serialized results contain only `x` and `y`.
