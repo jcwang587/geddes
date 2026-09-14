@@ -15,7 +15,7 @@ first pattern. See [usage](reading-patterns.md#pattern-selection) for examples.
 | BRML | `.brml` | Scan (`index`) | Integrated 1D profiles; uniquely identified measured data or the sole dataset within the selected scan |
 | XRDML | `.xrdml` | Scan (`index`) | Counts or intensities with a 2theta range or position list |
 | CHI | `.chi` | Single pattern | Four-line header and x/y rows matching the declared point count |
-| Powder CIF | `.cif` | Data block (`block`) | Measured powder profiles; corrected 2theta and processed total intensity take precedence when present |
+| Powder CIF | `.cif` | Data block (`block`) | Measured powder profiles; corrected 2theta and processed total intensity take precedence when present, with processed net intensity as a fallback |
 
 ## Reading behavior
 
