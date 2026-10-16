@@ -36,7 +36,7 @@ Select the second scan or a measured CIF block:
 === "Node.js"
 
     ```javascript
-    const geddes = require('@jcwang587/geddes')
+    const geddes = require('geddes')
 
     const pattern = geddes.read('measurement.rasx', { index: 1 })
     const measured = geddes.read('standard.cif', { block: '_meas' })
@@ -70,7 +70,7 @@ Pass the file contents and a filename hint. The filename does not open a file.
 === "Node.js"
 
     ```javascript
-    const geddes = require('@jcwang587/geddes')
+    const geddes = require('geddes')
 
     const data = Buffer.from('10 4\n11 9\n12 16\n')
     const pattern = geddes.readBytes(data, 'sample.xy')
