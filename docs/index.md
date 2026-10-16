@@ -42,11 +42,11 @@ or use the path to your own file.
     Node.js 16 or later:
 
     ```sh
-    npm install @jcwang587/geddes
+    npm install geddes
     ```
 
     ```javascript
-    const geddes = require('@jcwang587/geddes')
+    const geddes = require('geddes')
 
     const { x, y } = geddes.read('profile.xy')
     ```
