@@ -29,9 +29,6 @@ jobs:
           - host: windows-11-arm
             target: aarch64-pc-windows-msvc
             flags: ""
-          - host: macos-15-intel
-            target: x86_64-apple-darwin
-            flags: ""
           - host: macos-latest
             target: aarch64-apple-darwin
             flags: ""
@@ -96,7 +93,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        host: [ubuntu-latest, ubuntu-24.04-arm, macos-15-intel, macos-latest, windows-latest, windows-11-arm]
+        host: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest, windows-11-arm]
         node-version: ["16", "24"]
         exclude:
           - host: windows-11-arm
