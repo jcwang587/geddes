@@ -7,16 +7,16 @@ for examples.
 
 | Format | Common extensions | Selection | Supported variants |
 |---|---|---|---|
-| Text | `.xy`, `.xye`, `.csv`, `.dat`, `.prn`, `.txt` | Single pattern | Whitespace or comma-separated x/y; extra columns ignored |
-| GSAS | `.gsas`, `.gsa`, `.fxye`, `.gda`, `.xra`, `.raw` | Bank (`index`) | `CONS`/`CONST` with STD, ESD, or FXYE records; centidegrees converted to degrees |
+| Text | `.xy`, `.xye`, `.csv`, `.dat`, `.txt` | Single pattern | Whitespace or comma-separated x/y; extra columns ignored |
+| GSAS | `.gsas`, `.gsa`, `.fxye`, `.gda`, `.raw` | Bank (`index`) | `CONS`/`CONST` with STD, ESD, or FXYE records; centidegrees converted to degrees |
 | Bruker RAW | `.raw` | Scan (`index`) | Binary 2theta scans |
-| RAS | `.ras` | Scan (`index`) | Text diffraction profiles |
-| RASX | `.rasx` | Scan (`index`) | Diffraction profiles, selected in the file's scan order |
-| UXD | `.uxd` | Scan (`index`) | `_COUNTS`, `_CPS`, `_2THETACOUNTS`, `_2THETACPS`; explicit positions or start/step values |
-| BRML | `.brml` | Scan (`index`) | Integrated 1D profiles; uniquely identified measured data or the sole dataset within the selected scan |
-| XRDML | `.xrdml` | Scan (`index`) | Counts or intensities with a 2theta range or position list |
-| CHI | `.chi` | Single pattern | Four-line header and x/y rows matching the declared point count |
-| Powder CIF | `.cif` | Data block (`block`) | Measured powder profiles; corrected 2theta and processed total intensity take precedence when present |
+| Bruker UXD | `.uxd` | Scan (`index`) | `_COUNTS`, `_CPS`, `_2THETACOUNTS`, `_2THETACPS`; explicit positions or start/step values |
+| Bruker BRML | `.brml` | Scan (`index`) | Integrated 1D profiles; uniquely identified measured data or the sole dataset within the selected scan |
+| Rigaku RAS | `.ras` | Scan (`index`) | Text diffraction profiles |
+| Rigaku RASX | `.rasx` | Scan (`index`) | Diffraction profiles, selected in the file's scan order |
+| Malvern Panalytical XRDML | `.xrdml` | Scan (`index`) | Counts or intensities with a 2theta range or position list |
+| FIT2D CHI | `.chi` | Single pattern | Four-line header and x/y rows matching the declared point count |
+| Powder CIF | `.cif` | Data block (`block`) | Measured powder profiles; corrected 2theta preferred. Intensity priority: processed total, measured total, measured counts total, then processed net |
 
 ## Reading behavior
 

@@ -69,14 +69,6 @@ const crateVersion = readPackageVersionFromCargoToml(rootCargoToml);
 const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
 packageJson.version = crateVersion;
 
-if (packageJson.optionalDependencies) {
-  for (const depName of Object.keys(packageJson.optionalDependencies)) {
-    if (depName.startsWith(`${packageJson.name}-`)) {
-      packageJson.optionalDependencies[depName] = crateVersion;
-    }
-  }
-}
-
 writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
 
 if (existsSync(packageLockPath)) {
