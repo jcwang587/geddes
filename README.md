@@ -42,13 +42,10 @@ const { x, y } = geddes.read('sample.xy')
 |---|---|
 | Text | `.xy`, `.xye`, `.csv`, `.dat`, `.txt` |
 | GSAS | `.gsas`, `.gsa`, `.fxye`, `.gda`, `.raw` |
-| Bruker RAW | `.raw` |
-| RAS | `.ras` |
-| RASX | `.rasx` |
-| UXD | `.uxd` |
-| BRML | `.brml` |
-| XRDML | `.xrdml` |
-| CHI | `.chi` |
+| Bruker | `.raw`, `.uxd`, `.brml` |
+| Rigaku | `.ras`, `.rasx` |
+| Malvern Panalytical | `.xrdml` |
+| FIT2D | `.chi` |
 | Powder CIF | `.cif` |
 
 See the [documentation](https://jcwang587.github.io/geddes/) for installation, usage, and format limits.
