@@ -1,5 +1,5 @@
 //! XML and ZIP pattern containers. Only the selected profile is interpreted.
-use crate::parser::{decode, ParsedPattern};
+use crate::parser::{axis_key, decode, ParsedPattern};
 use crate::Error;
 use quick_xml::events::{BytesStart, Event};
 use quick_xml::{Reader, XmlVersion};
@@ -26,29 +26,26 @@ impl Element {
     fn child(&self, name: &str) -> Option<&Self> {
         self.children.iter().find(|c| c.name == name)
     }
-    fn descendants<'a>(&'a self, name: &str, out: &mut Vec<&'a Self>) {
+    fn collect_descendants<'a>(&'a self, name: &str, out: &mut Vec<&'a Self>) {
         if self.name == name {
             out.push(self);
         }
         for child in &self.children {
-            child.descendants(name, out);
+            child.collect_descendants(name, out);
         }
     }
-    fn all(&self, name: &str) -> Vec<&Self> {
+    /// This element and all nested elements with `name`, in document order.
+    fn descendants(&self, name: &str) -> Vec<&Self> {
         let mut out = Vec::new();
-        self.descendants(name, &mut out);
+        self.collect_descendants(name, &mut out);
         out
     }
-}
-
-fn error(msg: impl Into<String>) -> Error {
-    Error::Parse(msg.into())
 }
 
 fn unescape(value: &str) -> Result<String, Error> {
     quick_xml::escape::unescape(value)
         .map(|v| v.into_owned())
-        .map_err(|e| error(format!("XML entity: {e}")))
+        .map_err(|e| Error::parse(format!("XML entity: {e}")))
 }
 
 /// Create a node with local names and normalized, unescaped attribute values.
@@ -58,7 +55,7 @@ fn element(start: &BytesStart<'_>) -> Result<Element, Error> {
         ..Element::default()
     };
     for attr in start.attributes() {
-        let attr = attr.map_err(|e| error(format!("XML attribute: {e}")))?;
+        let attr = attr.map_err(|e| Error::parse(format!("XML attribute: {e}")))?;
         let key = attr
             .key
             .as_ref()
@@ -68,7 +65,7 @@ fn element(start: &BytesStart<'_>) -> Result<Element, Error> {
             .to_owned();
         let value = attr
             .normalized_value(XmlVersion::Implicit1_0)
-            .map_err(|e| error(format!("XML attribute: {e}")))?;
+            .map_err(|e| Error::parse(format!("XML attribute: {e}")))?;
         node.attrs.push((key, value.into_owned()));
     }
     Ok(node)
@@ -84,11 +81,11 @@ fn document(bytes: &[u8]) -> Result<Element, Error> {
     loop {
         match reader
             .read_event()
-            .map_err(|e| error(format!("XML parse: {e}")))?
+            .map_err(|e| Error::parse(format!("XML parse: {e}")))?
         {
             Event::Start(start) => {
                 if stack.len() > 128 {
-                    return Err(error("XML nesting exceeds 128 elements"));
+                    return Err(Error::parse("XML nesting exceeds 128 elements"));
                 }
                 stack.push(element(&start)?);
             }
@@ -101,24 +98,26 @@ fn document(bytes: &[u8]) -> Result<Element, Error> {
             }
             Event::End(_) => {
                 if stack.len() == 1 {
-                    return Err(error("unexpected XML closing element"));
+                    return Err(Error::parse("unexpected XML closing element"));
                 }
                 let node = stack.pop().unwrap();
                 stack.last_mut().unwrap().children.push(node);
             }
             Event::DocType(_) => {
-                return Err(error("XML document type declarations are not supported"))
+                return Err(Error::parse(
+                    "XML document type declarations are not supported",
+                ))
             }
             Event::Eof => break,
             _ => {}
         }
     }
     if stack.len() != 1 {
-        return Err(error("truncated XML document"));
+        return Err(Error::parse("truncated XML document"));
     }
     let mut wrapper = stack.pop().unwrap();
     if wrapper.children.len() != 1 || !wrapper.text.trim().is_empty() {
-        return Err(error("XML must contain exactly one root element"));
+        return Err(Error::parse("XML must contain exactly one root element"));
     }
     Ok(wrapper.children.remove(0))
 }
@@ -126,33 +125,34 @@ fn document(bytes: &[u8]) -> Result<Element, Error> {
 fn numbers(text: &str) -> Result<Vec<f64>, Error> {
     text.split_whitespace().map(number).collect()
 }
+
 fn number(value: &str) -> Result<f64, Error> {
     let v = value
         .trim()
         .parse::<f64>()
-        .map_err(|_| error(format!("invalid numeric value {value:?}")))?;
+        .map_err(|_| Error::parse(format!("invalid numeric value {value:?}")))?;
     if !v.is_finite() {
-        return Err(error("non-finite numeric value"));
+        return Err(Error::parse("non-finite numeric value"));
     }
     Ok(v)
 }
-fn index(value: Option<&str>) -> Result<usize, Error> {
+
+fn unsigned(value: Option<&str>) -> Result<usize, Error> {
     value
-        .ok_or_else(|| error("missing column Start/Length"))?
+        .ok_or_else(|| Error::parse("BRML: missing column Start/Length"))?
         .parse()
-        .map_err(|_| error("invalid column Start/Length"))
+        .map_err(|_| Error::parse("BRML: invalid column Start/Length"))
 }
-fn select<T>(values: &[T], scan: usize) -> Result<&T, Error> {
-    values.get(scan).ok_or_else(|| {
-        error(format!(
-            "scan {scan} is out of range ({} scans)",
+
+fn select<'a, T>(values: &'a [T], index: usize, format: &str) -> Result<&'a T, Error> {
+    values.get(index).ok_or_else(|| {
+        Error::parse(format!(
+            "{format}: scan {index} is out of range ({} scans)",
             values.len()
         ))
     })
 }
-fn axis_key(axis: &str) -> String {
-    axis.to_lowercase().replace([' ', '-', '_'], "")
-}
+
 fn check_rigaku_axis(axis: &str) -> Result<(), Error> {
     if !matches!(
         axis_key(axis).as_str(),
@@ -164,17 +164,17 @@ fn check_rigaku_axis(axis: &str) -> Result<(), Error> {
             | "2thetatheta"
             | "2thetaomega"
     ) {
-        return Err(error(format!(
-            "scan axis {axis:?} is not a supported 2theta scan"
+        return Err(Error::parse(format!(
+            "RASX: scan axis {axis:?} is not a supported 2theta scan"
         )));
     }
     Ok(())
 }
 
-pub(crate) fn parse_xrdml(bytes: &[u8], scan: usize) -> Result<ParsedPattern, Error> {
+pub(crate) fn parse_xrdml(bytes: &[u8], index: usize) -> Result<ParsedPattern, Error> {
     let root = document(bytes)?;
     if root.name != "xrdMeasurements" {
-        return Err(error("not an XRDML measurement"));
+        return Err(Error::parse("not an XRDML measurement"));
     }
     let scans: Vec<_> = root
         .children
@@ -182,7 +182,7 @@ pub(crate) fn parse_xrdml(bytes: &[u8], scan: usize) -> Result<ParsedPattern, Er
         .filter(|m| m.name == "xrdMeasurement")
         .flat_map(|m| m.children.iter().filter(|s| s.name == "scan"))
         .collect();
-    let scan = select(&scans, scan)?;
+    let scan = select(&scans, index, "XRDML")?;
     if let Some(axis) = scan.attr("scanAxis") {
         if !matches!(
             axis_key(axis).as_str(),
@@ -195,37 +195,41 @@ pub(crate) fn parse_xrdml(bytes: &[u8], scan: usize) -> Result<ParsedPattern, Er
                 | "omegatheta"
                 | "2thetatheta"
         ) {
-            return Err(error(format!("XRDML scan axis {axis:?} is not 2theta")));
+            return Err(Error::parse(format!(
+                "XRDML: scan axis {axis:?} is not 2theta"
+            )));
         }
     }
     let points = scan
         .child("dataPoints")
-        .ok_or_else(|| error("XRDML scan has no dataPoints"))?;
+        .ok_or_else(|| Error::parse("XRDML: scan has no dataPoints"))?;
     let intensity = points
         .child("intensities")
         .or_else(|| points.child("counts"))
-        .ok_or_else(|| error("XRDML missing intensities/counts"))?;
+        .ok_or_else(|| Error::parse("XRDML: missing intensities/counts"))?;
     let mut y = numbers(&intensity.text)?;
     if y.is_empty() {
-        return Err(error("XRDML has no intensity points"));
+        return Err(Error::parse("XRDML: no intensity points"));
     }
     let positions = points
         .children
         .iter()
         .find(|p| p.name == "positions" && p.attr("axis") == Some("2Theta"))
-        .ok_or_else(|| error("XRDML missing 2Theta positions"))?;
+        .ok_or_else(|| Error::parse("XRDML: missing 2Theta positions"))?;
     if let Some(unit) = positions.attr("unit") {
         if !matches!(
             unit.to_lowercase().as_str(),
             "deg" | "degree" | "degrees" | "°"
         ) {
-            return Err(error(format!("XRDML 2Theta unit {unit:?} is not degrees")));
+            return Err(Error::parse(format!(
+                "XRDML: 2Theta unit {unit:?} is not degrees"
+            )));
         }
     }
     let x = if let Some(list) = positions.child("listPositions") {
         let x = numbers(&list.text)?;
         if x.len() != y.len() {
-            return Err(error("XRDML position/intensity lengths differ"));
+            return Err(Error::parse("XRDML: position/intensity lengths differ"));
         }
         x
     } else if let (Some(start), Some(end)) = (
@@ -245,19 +249,19 @@ pub(crate) fn parse_xrdml(bytes: &[u8], scan: usize) -> Result<ParsedPattern, Er
         vec![number(
             &positions
                 .child("commonPosition")
-                .ok_or_else(|| error("XRDML missing stepped 2Theta positions"))?
+                .ok_or_else(|| Error::parse("XRDML: missing stepped 2Theta positions"))?
                 .text,
         )?]
     } else {
-        return Err(error(
-            "XRDML has a fixed or missing 2Theta axis, not a powder profile",
+        return Err(Error::parse(
+            "XRDML: fixed or missing 2Theta axis, not a powder profile",
         ));
     };
     if let Some(factors) = points.child("beamAttenuationFactors") {
         let factors = numbers(&factors.text)?;
         if factors.len() != y.len() || factors.iter().any(|v| *v <= 0.) {
-            return Err(error(
-                "XRDML attenuation factors must be positive and match intensity length",
+            return Err(Error::parse(
+                "XRDML: attenuation factors must be positive and match intensity length",
             ));
         }
         // <counts> stores detector counts; <intensities> is already corrected.
@@ -278,12 +282,12 @@ fn member<R: Read + Seek>(archive: &mut ZipArchive<R>, name: &str) -> Result<Vec
     let mut bytes = Vec::new();
     file.take(MAX_MEMBER_BYTES + 1).read_to_end(&mut bytes)?;
     if bytes.len() as u64 > MAX_MEMBER_BYTES {
-        return Err(error("archive pattern member exceeds 256 MiB"));
+        return Err(Error::parse("archive pattern member exceeds 256 MiB"));
     }
     Ok(bytes)
 }
 
-pub(crate) fn parse_rasx(bytes: &[u8], scan: usize) -> Result<ParsedPattern, Error> {
+pub(crate) fn parse_rasx(bytes: &[u8], index: usize) -> Result<ParsedPattern, Error> {
     let mut archive = ZipArchive::new(Cursor::new(bytes))?;
     let root = document(&member(&mut archive, "root.xml")?)?;
     let mut groups = Vec::new();
@@ -311,11 +315,15 @@ pub(crate) fn parse_rasx(bytes: &[u8], scan: usize) -> Result<ParsedPattern, Err
             ));
         }
     }
-    let (profile, conditions) = select(&groups, scan)?;
+    let (profile, conditions) = select(&groups, index, "RASX")?;
     if let Some(conditions) = conditions {
         let root = document(&member(&mut archive, conditions)?)?;
-        let scans = root.all("ScanInformation");
-        let axes = scans.first().copied().unwrap_or(&root).all("AxisName");
+        let scans = root.descendants("ScanInformation");
+        let axes = scans
+            .first()
+            .copied()
+            .unwrap_or(&root)
+            .descendants("AxisName");
         if let Some(axis) = axes.first() {
             check_rigaku_axis(axis.text.trim())?;
         }
@@ -327,34 +335,36 @@ pub(crate) fn parse_rasx(bytes: &[u8], scan: usize) -> Result<ParsedPattern, Err
     for line in text.lines().filter(|l| !l.trim().is_empty()) {
         let mut fields = line.split_whitespace();
         x.push(number(
-            fields.next().ok_or_else(|| error("RASX missing 2theta"))?,
+            fields
+                .next()
+                .ok_or_else(|| Error::parse("RASX: missing 2theta"))?,
         )?);
         y.push(number(
             fields
                 .next()
-                .ok_or_else(|| error("RASX missing intensity"))?,
+                .ok_or_else(|| Error::parse("RASX: missing intensity"))?,
         )?);
     }
     Ok(ParsedPattern { x, y })
 }
 
-pub(crate) fn parse_brml(bytes: &[u8], scan: usize) -> Result<ParsedPattern, Error> {
+pub(crate) fn parse_brml(bytes: &[u8], index: usize) -> Result<ParsedPattern, Error> {
     let mut archive = ZipArchive::new(Cursor::new(bytes))?;
     let manifest = archive
         .file_names()
         .find(|n| n.ends_with("DataContainer.xml"))
         .map(str::to_owned)
-        .ok_or_else(|| error("BRML missing DataContainer.xml"))?;
+        .ok_or_else(|| Error::parse("BRML: missing DataContainer.xml"))?;
     let root = document(&member(&mut archive, &manifest)?)?;
     let members: Vec<String> = root
-        .all("RawDataReferenceList")
+        .descendants("RawDataReferenceList")
         .iter()
         .flat_map(|e| &e.children)
         .map(|e| e.text.trim().to_owned())
         .filter(|s| !s.is_empty())
         .collect();
-    let raw = document(&member(&mut archive, select(&members, scan)?)?)?;
-    let routes = raw.all("DataRoute");
+    let raw = document(&member(&mut archive, select(&members, index, "BRML")?)?)?;
+    let routes = raw.descendants("DataRoute");
     let measured: Vec<_> = routes
         .iter()
         .copied()
@@ -365,13 +375,15 @@ pub(crate) fn parse_brml(bytes: &[u8], scan: usize) -> Result<ParsedPattern, Err
     } else if routes.len() == 1 {
         routes[0]
     } else {
-        return Err(error("BRML requires one unambiguous measured data route"));
+        return Err(Error::parse(
+            "BRML: requires one unambiguous measured data route",
+        ));
     };
     let mut x_column = None;
     let mut y_column = None;
-    for view in route.all("RawDataView") {
-        let start = index(view.attr("Start"))?;
-        let length = index(view.attr("Length"))?;
+    for view in route.descendants("RawDataView") {
+        let start = unsigned(view.attr("Start"))?;
+        let length = unsigned(view.attr("Length"))?;
         match view
             .attr("type")
             .unwrap_or("")
@@ -380,9 +392,9 @@ pub(crate) fn parse_brml(bytes: &[u8], scan: usize) -> Result<ParsedPattern, Err
             .unwrap_or("")
         {
             "VaryingRawDataView" => {
-                let fields = view.all("FieldDefinitions");
+                let fields = view.descendants("FieldDefinitions");
                 if fields.len() > length {
-                    return Err(error("BRML fields exceed declared view length"));
+                    return Err(Error::parse("BRML: fields exceed declared view length"));
                 }
                 for (offset, field) in fields.iter().enumerate() {
                     let axis = field
@@ -395,15 +407,15 @@ pub(crate) fn parse_brml(bytes: &[u8], scan: usize) -> Result<ParsedPattern, Err
                         x_column = Some(
                             start
                                 .checked_add(offset)
-                                .ok_or_else(|| error("BRML column overflow"))?,
+                                .ok_or_else(|| Error::parse("BRML: column overflow"))?,
                         );
                     }
                 }
             }
             "RecordedRawDataView" => {
                 if length != 1 {
-                    return Err(error(
-                        "BRML detector frames are not integrated XRD profiles",
+                    return Err(Error::parse(
+                        "BRML: detector frames are not integrated XRD profiles",
                     ));
                 }
                 if y_column.is_none() {
@@ -413,9 +425,9 @@ pub(crate) fn parse_brml(bytes: &[u8], scan: usize) -> Result<ParsedPattern, Err
             _ => {}
         }
     }
-    let xi = x_column.ok_or_else(|| error("BRML has no varying TwoTheta column"))?;
-    let yi = y_column.ok_or_else(|| error("BRML has no recorded intensity column"))?;
-    let rows = route.all("Datum");
+    let xi = x_column.ok_or_else(|| Error::parse("BRML: no varying TwoTheta column"))?;
+    let yi = y_column.ok_or_else(|| Error::parse("BRML: no recorded intensity column"))?;
+    let rows = route.descendants("Datum");
     let mut x = Vec::with_capacity(rows.len());
     let mut y = Vec::with_capacity(rows.len());
     for row in rows {
@@ -429,8 +441,8 @@ pub(crate) fn parse_brml(bytes: &[u8], scan: usize) -> Result<ParsedPattern, Err
                 py = Some(number(value)?);
             }
         }
-        x.push(px.ok_or_else(|| error("BRML datum missing TwoTheta column"))?);
-        y.push(py.ok_or_else(|| error("BRML datum missing intensity column"))?);
+        x.push(px.ok_or_else(|| Error::parse("BRML: datum missing TwoTheta column"))?);
+        y.push(py.ok_or_else(|| Error::parse("BRML: datum missing intensity column"))?);
     }
     // Bruker has already applied its absorption factor to the stored intensity.
     Ok(ParsedPattern { x, y })
