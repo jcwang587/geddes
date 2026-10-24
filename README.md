@@ -40,8 +40,8 @@ const { x, y } = geddes.read('sample.xy')
 
 | Format | Extensions |
 |---|---|
-| Text | `.xy`, `.xye`, `.csv`, `.dat`, `.prn`, `.txt` |
-| GSAS | `.gsas`, `.gsa`, `.fxye`, `.gda`, `.xra`, `.raw` |
+| Text | `.xy`, `.xye`, `.csv`, `.dat`, `.txt` |
+| GSAS | `.gsas`, `.gsa`, `.fxye`, `.gda`, `.raw` |
 | Bruker RAW | `.raw` |
 | RAS | `.ras` |
 | RASX | `.rasx` |

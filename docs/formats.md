@@ -7,8 +7,8 @@ for examples.
 
 | Format | Common extensions | Selection | Supported variants |
 |---|---|---|---|
-| Text | `.xy`, `.xye`, `.csv`, `.dat`, `.prn`, `.txt` | Single pattern | Whitespace or comma-separated x/y; extra columns ignored |
-| GSAS | `.gsas`, `.gsa`, `.fxye`, `.gda`, `.xra`, `.raw` | Bank (`index`) | `CONS`/`CONST` with STD, ESD, or FXYE records; centidegrees converted to degrees |
+| Text | `.xy`, `.xye`, `.csv`, `.dat`, `.txt` | Single pattern | Whitespace or comma-separated x/y; extra columns ignored |
+| GSAS | `.gsas`, `.gsa`, `.fxye`, `.gda`, `.raw` | Bank (`index`) | `CONS`/`CONST` with STD, ESD, or FXYE records; centidegrees converted to degrees |
 | Bruker RAW | `.raw` | Scan (`index`) | Binary 2theta scans |
 | RAS | `.ras` | Scan (`index`) | Text diffraction profiles |
 | RASX | `.rasx` | Scan (`index`) | Diffraction profiles, selected in the file's scan order |
