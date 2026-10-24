@@ -14,7 +14,7 @@ pub(crate) struct ParsedPattern {
 pub(crate) fn decode(bytes: &[u8]) -> Result<Cow<'_, str>, Error> {
     if bytes.starts_with(b"\xff\xfe") || bytes.starts_with(b"\xfe\xff") {
         if !bytes.len().is_multiple_of(2) {
-            return Err(Error::Parse("truncated UTF-16 text".into()));
+            return Err(Error::parse("truncated UTF-16 text"));
         }
         let little = bytes[0] == 0xff;
         let words: Vec<u16> = bytes[2..]
@@ -29,18 +29,26 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<Cow<'_, str>, Error> {
             .collect();
         return String::from_utf16(&words)
             .map(Cow::Owned)
-            .map_err(|_| Error::Parse("invalid UTF-16 text".into()));
+            .map_err(|_| Error::parse("invalid UTF-16 text"));
     }
     let bytes = bytes.strip_prefix(b"\xef\xbb\xbf").unwrap_or(bytes);
     // Legacy headers may contain non-UTF8 names; numeric data are ASCII.
     Ok(String::from_utf8_lossy(bytes))
 }
 
-fn one_pattern(options: &ReadOptions) -> Result<(), Error> {
+/// Normalize an axis label for comparison: lowercase, without whitespace,
+/// hyphens or underscores.
+pub(crate) fn axis_key(label: &str) -> String {
+    label
+        .chars()
+        .filter(|c| !c.is_whitespace() && *c != '-' && *c != '_')
+        .flat_map(char::to_lowercase)
+        .collect()
+}
+
+fn check_single_pattern(options: &ReadOptions) -> Result<(), Error> {
     if options.index != 0 {
-        return Err(Error::Parse(
-            "this format has one pattern; index must be 0".into(),
-        ));
+        return Err(Error::parse("this format has one pattern; index must be 0"));
     }
     Ok(())
 }
@@ -78,7 +86,7 @@ pub(crate) fn parse(
         || bytes.starts_with(b"RAW2")
         || bytes.starts_with(b"RAW ") && bytes[..bytes.len().min(256)].contains(&0)
     {
-        return bruker::parse_bruker_raw(bytes, options.index);
+        return bruker::parse_raw(bytes, options.index);
     }
     if bytes.starts_with(b"PK\x03\x04") || bytes.starts_with(b"PK\x05\x06") {
         let archive = zip::ZipArchive::new(Cursor::new(bytes))?;
@@ -116,7 +124,7 @@ pub(crate) fn parse(
         return text::parse_ras(bytes, options.index);
     }
     if head.lines().any(|l| l.trim_start().starts_with("data_")) && head.contains("_pd_") {
-        one_pattern(options)?;
+        check_single_pattern(options)?;
         return text::parse_pdcif(bytes, options.block.as_deref());
     }
     if head
@@ -157,7 +165,7 @@ pub(crate) fn parse(
                     )
         };
     if chi_header {
-        one_pattern(options)?;
+        check_single_pattern(options)?;
         return text::parse_chi(bytes);
     }
     match ext.as_str() {
@@ -168,15 +176,15 @@ pub(crate) fn parse(
             return text::parse_gsas(bytes, options.index)
         }
         "cif" => {
-            one_pattern(options)?;
+            check_single_pattern(options)?;
             return text::parse_pdcif(bytes, options.block.as_deref());
         }
         "chi" => {
-            one_pattern(options)?;
+            check_single_pattern(options)?;
             return text::parse_chi(bytes);
         }
         "rasx" | "brml" => {
-            return Err(Error::Parse(format!("{ext} is not a readable ZIP archive")))
+            return Err(Error::parse(format!("{ext} is not a readable ZIP archive")))
         }
         "dif" => {
             let reflections = head
@@ -197,13 +205,13 @@ pub(crate) fn parse(
                         .any(|w| w == ["h", "k", "l"])
                 })
             {
-                return Err(Error::Parse(
-                    "DIF reflection peak lists are not measured XRD profiles".into(),
+                return Err(Error::parse(
+                    "DIF reflection peak lists are not measured XRD profiles",
                 ));
             }
         }
         _ => {}
     }
-    one_pattern(options)?;
+    check_single_pattern(options)?;
     text::parse_xy(bytes)
 }

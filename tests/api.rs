@@ -1,37 +1,28 @@
 use geddes::{read, read_bytes, Error, Pattern};
 use std::fs::read as fs_read;
 use std::path::PathBuf;
-use std::time::Instant;
 
 #[test]
 fn reads_gsas_raw_from_path() {
     let path = PathBuf::from("tests/data/gsas_raw/gsas.raw");
-    let start = Instant::now();
     let pattern = read(&path).expect("Failed to load raw file");
-    println!("IO time for GSAS raw: {:?}", start.elapsed());
-    assert!(pattern.x.len() > 0);
+    assert!(!pattern.x.is_empty());
     assert_eq!(pattern.x.len(), pattern.y.len());
-    println!("Loaded {} points from GSAS raw", pattern.x.len());
 }
 
 #[test]
 fn reads_bruker_raw_from_path() {
     let path = PathBuf::from("tests/data/bruker_raw/bruker4_v5converter.raw");
-    let start = Instant::now();
     let pattern = read(&path).expect("Failed to load Bruker raw file");
-    println!("IO time for Bruker raw: {:?}", start.elapsed());
-    assert!(pattern.x.len() > 0);
+    assert!(!pattern.x.is_empty());
     assert_eq!(pattern.x.len(), pattern.y.len());
-    println!("Loaded {} points from Bruker raw", pattern.x.len());
 }
 
 #[test]
 fn reads_rasx_from_path() {
     let path = PathBuf::from("tests/data/rasx/sample.rasx");
-    let start = Instant::now();
     let pattern = read(&path).expect("Failed to load rasx file");
-    println!("IO time for rasx: {:?}", start.elapsed());
-    assert!(pattern.x.len() > 0);
+    assert!(!pattern.x.is_empty());
     assert_eq!(pattern.x.len(), pattern.y.len());
     assert_eq!(pattern.x.len(), 2334);
     assert!(
@@ -39,73 +30,57 @@ fn reads_rasx_from_path() {
         "Unexpected first RASX x value: {}",
         pattern.x[0]
     );
-    println!("Loaded {} points from rasx", pattern.x.len());
 }
 
 #[test]
 fn reads_xrdml_from_path() {
     let path = PathBuf::from("tests/data/xrdml/sample.xrdml");
-    let start = Instant::now();
     let pattern = read(&path).expect("Failed to load xrdml file");
-    println!("IO time for xrdml: {:?}", start.elapsed());
-    assert!(pattern.x.len() > 0);
+    assert!(!pattern.x.is_empty());
     assert_eq!(pattern.x.len(), pattern.y.len());
-    println!("Loaded {} points from xrdml", pattern.x.len());
 }
 
 #[test]
 fn reads_xy_from_path() {
     let path = PathBuf::from("tests/data/xy/sample.xy");
-    let start = Instant::now();
     let pattern = read(&path).expect("Failed to load xy file");
-    println!("IO time for xy: {:?}", start.elapsed());
-    assert!(pattern.x.len() > 0);
+    assert!(!pattern.x.is_empty());
     assert_eq!(pattern.x.len(), pattern.y.len());
-    println!("Loaded {} points from xy", pattern.x.len());
 }
 
 #[test]
 fn reads_csv_from_path() {
     let path = PathBuf::from("tests/data/csv/sample.csv");
-    let start = Instant::now();
     let pattern = read(&path).expect("Failed to load csv file");
-    println!("IO time for csv: {:?}", start.elapsed());
-    assert!(pattern.x.len() > 0);
+    assert!(!pattern.x.is_empty());
     assert_eq!(pattern.x.len(), pattern.y.len());
-    println!("Loaded {} points from csv", pattern.x.len());
 }
 
 #[test]
 fn reads_gsas_raw_from_bytes() {
     let path = PathBuf::from("tests/data/gsas_raw/gsas.raw");
-    let start = Instant::now();
     let bytes = fs_read(&path).expect("Failed to read file bytes");
-    println!("IO time (read bytes) for GSAS raw: {:?}", start.elapsed());
     let pattern = read_bytes(&bytes, "gsas.raw").expect("Failed to load raw from bytes");
-    assert!(pattern.x.len() > 0);
+    assert!(!pattern.x.is_empty());
     assert_eq!(pattern.x.len(), pattern.y.len());
 }
 
 #[test]
 fn reads_bruker_raw_from_bytes() {
     let path = PathBuf::from("tests/data/bruker_raw/bruker4_v5converter.raw");
-    let start = Instant::now();
     let bytes = fs_read(&path).expect("Failed to read Bruker raw bytes");
-    println!("IO time (read bytes) for Bruker raw: {:?}", start.elapsed());
     let pattern = read_bytes(&bytes, "bruker4_v5converter.raw")
         .expect("Failed to load Bruker raw from bytes");
-    assert!(pattern.x.len() > 0);
+    assert!(!pattern.x.is_empty());
     assert_eq!(pattern.x.len(), pattern.y.len());
 }
 
 #[test]
 fn reads_rasx_from_bytes() {
     let path = PathBuf::from("tests/data/rasx/sample.rasx");
-    let start = Instant::now();
     let bytes = fs_read(&path).expect("Failed to read file bytes");
-    println!("IO time (read bytes) for rasx: {:?}", start.elapsed());
     let pattern = read_bytes(&bytes, "sample.rasx").expect("Failed to load rasx from bytes");
-    assert!(pattern.x.len() > 0);
+    assert!(!pattern.x.is_empty());
     assert_eq!(pattern.x.len(), pattern.y.len());
     assert_eq!(pattern.x.len(), 2334);
     assert!(
@@ -118,33 +93,27 @@ fn reads_rasx_from_bytes() {
 #[test]
 fn reads_xrdml_from_bytes() {
     let path = PathBuf::from("tests/data/xrdml/sample.xrdml");
-    let start = Instant::now();
     let bytes = fs_read(&path).expect("Failed to read file bytes");
-    println!("IO time (read bytes) for xrdml: {:?}", start.elapsed());
     let pattern = read_bytes(&bytes, "sample.xrdml").expect("Failed to load xrdml from bytes");
-    assert!(pattern.x.len() > 0);
+    assert!(!pattern.x.is_empty());
     assert_eq!(pattern.x.len(), pattern.y.len());
 }
 
 #[test]
 fn reads_xy_from_bytes() {
     let path = PathBuf::from("tests/data/xy/sample.xy");
-    let start = Instant::now();
     let bytes = fs_read(&path).expect("Failed to read file bytes");
-    println!("IO time (read bytes) for xy: {:?}", start.elapsed());
     let pattern = read_bytes(&bytes, "sample.xy").expect("Failed to load xy from bytes");
-    assert!(pattern.x.len() > 0);
+    assert!(!pattern.x.is_empty());
     assert_eq!(pattern.x.len(), pattern.y.len());
 }
 
 #[test]
 fn reads_csv_from_bytes() {
     let path = PathBuf::from("tests/data/csv/sample.csv");
-    let start = Instant::now();
     let bytes = fs_read(&path).expect("Failed to read file bytes");
-    println!("IO time (read bytes) for csv: {:?}", start.elapsed());
     let pattern = read_bytes(&bytes, "sample.csv").expect("Failed to load csv from bytes");
-    assert!(pattern.x.len() > 0);
+    assert!(!pattern.x.is_empty());
     assert_eq!(pattern.x.len(), pattern.y.len());
 }
 

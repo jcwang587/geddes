@@ -33,18 +33,18 @@ impl Pattern {
     /// and strictly increasing x. Returns a parse error if validation fails.
     pub fn new(x: Vec<f64>, y: Vec<f64>) -> Result<Self, Error> {
         if x.len() != y.len() {
-            return Err(Error::Parse("x and y must have the same length".into()));
+            return Err(Error::parse("x and y must have the same length"));
         }
         if x.is_empty() {
-            return Err(Error::Parse("pattern contains no points".into()));
+            return Err(Error::parse("pattern contains no points"));
         }
         if x.iter().any(|v| !v.is_finite()) || x.windows(2).any(|w| w[0] >= w[1]) {
-            return Err(Error::Parse(
-                "x values must be finite and strictly increasing".into(),
+            return Err(Error::parse(
+                "x values must be finite and strictly increasing",
             ));
         }
         if y.iter().any(|v| !v.is_finite()) {
-            return Err(Error::Parse("y values must be finite".into()));
+            return Err(Error::parse("y values must be finite"));
         }
         Ok(Self { x, y })
     }

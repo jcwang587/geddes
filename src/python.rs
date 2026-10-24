@@ -19,8 +19,8 @@ impl Pattern {
 }
 
 /// Load one XRD pattern as x (2theta degrees) and y (intensity).
-#[pyfunction(name = "read", signature = (path, *, index=0, block=None))]
-fn read_py(path: &str, index: usize, block: Option<String>) -> PyResult<Pattern> {
+#[pyfunction(signature = (path, *, index=0, block=None))]
+fn read(path: &str, index: usize, block: Option<String>) -> PyResult<Pattern> {
     read_with_options(path, &ReadOptions { index, block }).map_err(to_py_err)
 }
 
@@ -40,7 +40,7 @@ fn read_bytes(
 fn geddes(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Pattern>()?;
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
-    m.add_function(wrap_pyfunction!(read_py, m)?)?;
+    m.add_function(wrap_pyfunction!(read, m)?)?;
     m.add_function(wrap_pyfunction!(read_bytes, m)?)?;
     Ok(())
 }

@@ -25,3 +25,9 @@ pub enum Error {
     #[error("File not found in archive: {0}")]
     FileNotFoundInArchive(String),
 }
+
+impl Error {
+    pub(crate) fn parse(message: impl Into<String>) -> Self {
+        Self::Parse(message.into())
+    }
+}
