@@ -432,6 +432,25 @@ fn pdcif_profile_tag_priority_and_exponent_uncertainties() {
 }
 
 #[test]
+fn pdcif_processed_net_intensity_loads_refined_profiles() {
+    // COD refinement exports (e.g. 2108028) publish only background-subtracted
+    // observed intensity next to the calculated profile and refinement weight.
+    let text = b"data_2108028\nloop_\n_pd_proc_point_id\n_pd_proc_2theta_corrected\n_pd_proc_intensity_net\n_pd_calc_intensity_net\n_pd_proc_ls_weight\n1 5.0000 264.47 284.33 18.91\n2 5.0010 264.21 284.26 16.37\n3 5.0020 242.70 284.18 15.70\n";
+    assert_xy(
+        text,
+        "2108028.cif",
+        &[5.0, 5.001, 5.002],
+        &[264.47, 264.21, 242.70],
+    );
+}
+
+#[test]
+fn pdcif_total_intensity_takes_priority_over_net() {
+    let text = b"data_profile\nloop_\n_pd_proc_2theta_corrected\n_pd_proc_intensity_net\n_pd_proc_intensity_total\n10.0 3 4\n11.0 8 9\n";
+    assert_xy(text, "pattern.cif", &[10.0, 11.0], &[4.0, 9.0]);
+}
+
+#[test]
 fn pdcif_scalar_angular_range_builds_axis_for_counts_loop() {
     let text = b"data_profile\n_pd_meas_2theta_range_min 10\n_pd_meas_2theta_range_max 11\n_pd_meas_2theta_range_inc .5\nloop_\n_pd_meas_intensity_total\n4 9 16\n";
     assert_xy(text, "pattern.cif", &[10.0, 10.5, 11.0], &[4.0, 9.0, 16.0]);
