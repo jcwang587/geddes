@@ -144,10 +144,10 @@ fn unsigned(value: Option<&str>) -> Result<usize, Error> {
         .map_err(|_| Error::parse("BRML: invalid column Start/Length"))
 }
 
-fn select<T>(values: &[T], index: usize) -> Result<&T, Error> {
+fn select<'a, T>(values: &'a [T], index: usize, format: &str) -> Result<&'a T, Error> {
     values.get(index).ok_or_else(|| {
         Error::parse(format!(
-            "scan {index} is out of range ({} scans)",
+            "{format}: scan {index} is out of range ({} scans)",
             values.len()
         ))
     })
@@ -182,7 +182,7 @@ pub(crate) fn parse_xrdml(bytes: &[u8], index: usize) -> Result<ParsedPattern, E
         .filter(|m| m.name == "xrdMeasurement")
         .flat_map(|m| m.children.iter().filter(|s| s.name == "scan"))
         .collect();
-    let scan = select(&scans, index)?;
+    let scan = select(&scans, index, "XRDML")?;
     if let Some(axis) = scan.attr("scanAxis") {
         if !matches!(
             axis_key(axis).as_str(),
@@ -315,7 +315,7 @@ pub(crate) fn parse_rasx(bytes: &[u8], index: usize) -> Result<ParsedPattern, Er
             ));
         }
     }
-    let (profile, conditions) = select(&groups, index)?;
+    let (profile, conditions) = select(&groups, index, "RASX")?;
     if let Some(conditions) = conditions {
         let root = document(&member(&mut archive, conditions)?)?;
         let scans = root.descendants("ScanInformation");
@@ -363,7 +363,7 @@ pub(crate) fn parse_brml(bytes: &[u8], index: usize) -> Result<ParsedPattern, Er
         .map(|e| e.text.trim().to_owned())
         .filter(|s| !s.is_empty())
         .collect();
-    let raw = document(&member(&mut archive, select(&members, index)?)?)?;
+    let raw = document(&member(&mut archive, select(&members, index, "BRML")?)?)?;
     let routes = raw.descendants("DataRoute");
     let measured: Vec<_> = routes
         .iter()
