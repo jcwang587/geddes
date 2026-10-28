@@ -10,20 +10,30 @@ on:
         description: "Publish to npm?"
         required: true
         default: "no"
+      sourceRunId:
+        description: "Recover the checked tarballs from this npm release run (optional)"
+        required: false
+        type: string
 
 permissions:
   contents: read
 
 jobs:
   check:
+    if: github.event_name != 'workflow_dispatch' || inputs.sourceRunId == ''
     uses: ./.github/workflows/check-node.yml
 
   publish:
     runs-on: ubuntu-latest
     needs: check
-    if: github.event_name == 'push' || inputs.publishToNPM == 'yes'
+    if: >-
+      !cancelled() &&
+      (github.event_name == 'push' || inputs.publishToNPM == 'yes') &&
+      (needs.check.result == 'success' ||
+       (inputs.sourceRunId != '' && needs.check.result == 'skipped'))
     permissions:
       contents: read
+      actions: read
       id-token: write
     steps:
       - uses: actions/checkout@v7
@@ -33,10 +43,29 @@ jobs:
           registry-url: "https://registry.npmjs.org"
       - name: Upgrade npm for trusted publishing
         run: npm install -g npm@^11.10.0
+      - name: Check publish recovery guards
+        run: node --test node/scripts/publish-packages.test.mjs node/scripts/validate-publish-source.test.mjs
+      - name: Verify the original package checks and release artifact
+        if: inputs.sourceRunId != ''
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ inputs.sourceRunId }}
+        run: node node/scripts/validate-publish-source.mjs "$SOURCE_RUN_ID"
       - uses: actions/download-artifact@v8
+        if: inputs.sourceRunId == ''
         with:
           name: node-packages
           path: node/packages
+      - name: Download the original tested tarballs
+        if: inputs.sourceRunId != ''
+        uses: actions/download-artifact@v8
+        with:
+          artifact-ids: ${{ steps.source.outputs.artifact_id }}
+          merge-multiple: true
+          path: node/packages
+          run-id: ${{ inputs.sourceRunId }}
+          github-token: ${{ github.token }}
       - name: Publish the tested tarballs
         working-directory: node
         run: npm run publish:packages -- packages
