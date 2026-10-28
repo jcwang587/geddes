@@ -15,6 +15,11 @@ jobs:
         with:
           python-version: "3.12"
       - run: python tests/check_release_version.py
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+      - name: Test publish recovery guards
+        run: node --test node/scripts/publish-packages.test.mjs node/scripts/validate-publish-source.test.mjs
 
   build:
     needs: version
