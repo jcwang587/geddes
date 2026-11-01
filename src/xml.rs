@@ -3,6 +3,7 @@ use crate::parser::{axis_key, decode, ParsedPattern};
 use crate::Error;
 use quick_xml::events::{BytesStart, Event};
 use quick_xml::{Reader, XmlVersion};
+use std::borrow::Cow;
 use std::io::{Cursor, Read, Seek};
 use zip::ZipArchive;
 
@@ -352,8 +353,10 @@ pub(crate) fn parse_brml(bytes: &[u8], index: usize) -> Result<ParsedPattern, Er
     let mut archive = ZipArchive::new(Cursor::new(bytes))?;
     let manifest = archive
         .file_names()
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
         .find(|n| n.ends_with("DataContainer.xml"))
-        .map(str::to_owned)
+        .map(Cow::into_owned)
         .ok_or_else(|| Error::parse("BRML: missing DataContainer.xml"))?;
     let root = document(&member(&mut archive, &manifest)?)?;
     let members: Vec<String> = root
