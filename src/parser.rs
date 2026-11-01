@@ -90,14 +90,12 @@ pub(crate) fn parse(
     }
     if bytes.starts_with(b"PK\x03\x04") || bytes.starts_with(b"PK\x05\x06") {
         let archive = zip::ZipArchive::new(Cursor::new(bytes))?;
-        if archive
-            .file_names()
-            .any(|n| n.ends_with("DataContainer.xml"))
-        {
+        let names = archive.file_names().collect::<Result<Vec<_>, _>>()?;
+        if names.iter().any(|n| n.ends_with("DataContainer.xml")) {
             return xml::parse_brml(bytes, options.index);
         }
-        if archive
-            .file_names()
+        if names
+            .iter()
             .any(|n| n == "root.xml" || (n.contains("Profile") && n.ends_with(".txt")))
         {
             return xml::parse_rasx(bytes, options.index);
