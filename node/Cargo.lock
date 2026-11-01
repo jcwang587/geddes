@@ -162,7 +162,7 @@ dependencies = [
 
 [[package]]
 name = "geddes"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "quick-xml",
  "serde",
@@ -172,7 +172,7 @@ dependencies = [
 
 [[package]]
 name = "geddes-node"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "geddes",
  "napi",
