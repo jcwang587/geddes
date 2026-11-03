@@ -107,33 +107,19 @@ axis declaration.
 
 ## Using the arrays
 
-These Python examples use the [toy pattern](assets/samples/profile.xy).
-Install Matplotlib and NumPy for plotting and CSV export:
-
-```sh
-pip install matplotlib numpy
-```
-
-Plot x and y:
+`pattern.x` and `pattern.y` are plain lists of floats, ready for any
+plotting or array library. This example reads the
+[toy pattern](assets/samples/profile.xy) and saves it as a two-column CSV
+with the standard library alone:
 
 ```python
+import csv
+
 import geddes
-import matplotlib.pyplot as plt
 
 pattern = geddes.read("profile.xy")
-plt.plot(pattern.x, pattern.y, "o-")
-plt.xlabel("2θ (degrees)")
-plt.ylabel("Intensity")
-plt.show()
-```
-
-Save a two-column CSV:
-
-```python
-import geddes
-import numpy as np
-
-pattern = geddes.read("profile.xy")
-xy = np.column_stack((pattern.x, pattern.y))
-np.savetxt("profile.csv", xy, delimiter=",", header="2theta,intensity", comments="")
+with open("profile.csv", "w", newline="") as file:
+    writer = csv.writer(file)
+    writer.writerow(["2theta", "intensity"])
+    writer.writerows(zip(pattern.x, pattern.y))
 ```
