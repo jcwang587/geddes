@@ -1,7 +1,7 @@
 //! Bruker RAW3 and RAW4: decode the declared range headers and data strides.
 //!
-//! Field offsets are format facts cross-checked against the Rietx format notes
-//! and its independently packed examples. In both versions the first float32
+//! Field offsets are format facts cross-checked against independently packed
+//! examples. In both versions the first float32
 //! of a data record is intensity; RAW3 can additionally record measured 2θ.
 
 use crate::parser::{axis_key, ParsedPattern};
