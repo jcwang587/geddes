@@ -10,7 +10,7 @@ or use the path to your own file.
 
 === "Python"
 
-    Python 3.10 or later:
+    Python 3.11 or later:
 
     ```sh
     pip install geddes
