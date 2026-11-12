@@ -19,40 +19,50 @@ jobs:
         run: python tests/check_release_version.py
 
   wheels:
-    name: Wheel / ${{ matrix.os }} / Python ${{ matrix.python-version }}
+    name: Wheel / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     needs: version
+    env:
+      # The wheels are abi3: each platform builds one wheel with the oldest
+      # supported Python and tests it with the oldest and the newest.
+      OLDEST_PYTHON: "3.11"
+      NEWEST_PYTHON: "3.15"
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest, windows-11-arm]
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
-      - name: Set up Python
+      - name: Set up Python ${{ env.OLDEST_PYTHON }}
         uses: actions/setup-python@v7
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ env.OLDEST_PYTHON }}
       - name: Build manylinux wheel
-        if: matrix.os == 'ubuntu-latest'
+        if: runner.os == 'Linux'
         uses: PyO3/maturin-action@v1
         with:
           command: build
-          args: --release --locked --out dist -i python${{ matrix.python-version }}
+          args: --release --locked --out dist -i python${{ env.OLDEST_PYTHON }}
           manylinux: auto
       - name: Build wheel
-        if: matrix.os != 'ubuntu-latest'
+        if: runner.os != 'Linux'
         uses: PyO3/maturin-action@v1
         with:
           command: build
           args: --release --locked --out dist -i python
-      - name: Install and test the built wheel
+      - name: Install and test the built wheel with Python ${{ env.OLDEST_PYTHON }}
+        run: python tests/check_python_package.py --dist-dir dist --kind wheel
+      - name: Set up Python ${{ env.NEWEST_PYTHON }}
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.NEWEST_PYTHON }}
+      - name: Install and test the built wheel with Python ${{ env.NEWEST_PYTHON }}
         run: python tests/check_python_package.py --dist-dir dist --kind wheel
       - name: Upload checked wheel
         uses: actions/upload-artifact@v7
         with:
-          name: checked-python-wheel-${{ matrix.os }}-${{ matrix.python-version }}
+          name: checked-python-wheel-${{ matrix.os }}
           path: dist/*.whl
           if-no-files-found: error
 

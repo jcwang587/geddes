@@ -6,7 +6,7 @@ build-backend = "maturin"
 name = "geddes"
 description = "A Python library for parsing XRD pattern files"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = { text = "MIT" }
 keywords = ["xrd", "parser", "science", "crystallography", "chemistry"]
 classifiers = [

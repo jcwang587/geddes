@@ -66,8 +66,8 @@ pull requests to `main` and `dev`, and before release tagging.
 | Package | Installation checks |
 |---|---|
 | Rust | Package, compile, and test the unpacked crate on Linux, macOS, and Windows |
-| Python | Install wheels on all three systems with Python 3.10–3.14; also build and install the source distribution |
-| Node.js | Install npm tarballs on all six supported OS/architecture targets with Node 16 and 24; Windows ARM64 uses Node 20 and 24 |
+| Python | Build one abi3 wheel on each of the five supported OS/architecture targets and install it with Python 3.11 and 3.15; also build and install the source distribution |
+| Node.js | Install npm tarballs on all five supported OS/architecture targets with Node 16 and 24; Windows ARM64 uses Node 20 and 24 |
 
 Python and Node checks use fresh environments outside the checkout and run the
 complete fixture suite. Node installations use the packaged JavaScript loader
