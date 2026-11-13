@@ -59,7 +59,7 @@ dependencies = [
 
 [[package]]
 name = "geddes"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "pyo3",
  "quick-xml",
