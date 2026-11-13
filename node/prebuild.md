@@ -40,3 +40,4 @@ npm --prefix node run build
 - `npm --prefix node run sync:version` updates manifest files only; it does not regenerate `node/index.js`.
 - `cargo update` is not the preferred version-bump step here because it also updates dependency resolution. Use the `cargo check` commands above to refresh lockfiles for the current manifests.
 - If you are already inside `node/`, the equivalent sync/build commands are `npm run sync:version` and `npm run build`.
+- Before the first release that includes a new npm platform package, set it up on npm as described in [CONTRIBUTING](../CONTRIBUTING.md#set-up-a-new-platform-package).

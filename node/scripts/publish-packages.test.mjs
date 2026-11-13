@@ -11,10 +11,11 @@ function fixture(t) {
   t.after(() => rmSync(root, { recursive: true, force: true }))
   const directory = join(root, 'packages')
   mkdirSync(directory)
-  const names = ['geddes-win32-x64-msvc', 'geddes-win32-arm64-msvc', 'geddes-darwin-arm64',
-    'geddes-linux-x64-gnu', 'geddes-linux-arm64-gnu', 'geddes']
-  const packages = names.map((name, index) => ({ name, version: '1.0.1', filename: `${name}.tgz`,
-    target: index === 5 ? null : `target-${index}` }))
+  const names = ['@geddes-xrd/geddes-win32-x64-msvc', '@geddes-xrd/geddes-win32-arm64-msvc',
+    '@geddes-xrd/geddes-darwin-arm64', '@geddes-xrd/geddes-linux-x64-gnu', '@geddes-xrd/geddes-linux-arm64-gnu', 'geddes']
+  // npm pack names a scoped tarball scope-name-version.tgz.
+  const packages = names.map((name, index) => ({ name, version: '1.0.1',
+    filename: `${name.replace(/^@/, '').replace('/', '-')}-1.0.1.tgz`, target: index === 5 ? null : `target-${index}` }))
   const metadata = new Map()
   for (const pkg of packages) {
     const bytes = Buffer.from(`tested tarball for ${pkg.name}`)
@@ -41,6 +42,17 @@ test('recovery skips matching Windows tarballs and publishes the remaining four 
   const published = []
   await publishPackages(f.directory, { fetchMetadata: f.fetchMetadata, publish: entry => published.push(entry.pkg.name) })
   assert.deepEqual(published, f.packages.slice(2).map(pkg => pkg.name))
+})
+
+test('scoped names are looked up as one escaped registry path segment', async t => {
+  const f = fixture(t)
+  const paths = []
+  await planPublishes(f.packages, f.directory, url => {
+    paths.push(new URL(url).pathname)
+    return f.fetchMetadata(url)
+  })
+  assert.deepEqual(paths.slice(0, 2), ['/%40geddes-xrd%2Fgeddes-win32-x64-msvc', '/%40geddes-xrd%2Fgeddes-win32-arm64-msvc'])
+  assert.deepEqual(paths.map(path => decodeURIComponent(path.slice(1))), f.packages.map(pkg => pkg.name))
 })
 
 test('an integrity mismatch in a later package aborts before any publish', async t => {
