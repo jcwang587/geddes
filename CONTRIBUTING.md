@@ -141,3 +141,63 @@ python -m venv .venv-docs
 The generated site is written to `site/`. The documentation workflow runs the
 same strict build and uploads the site as an artifact. Keep generated output
 and the documentation environment out of version control.
+
+## Publish the npm packages
+
+Users install `geddes` alone. Its compiled bindings are five platform packages
+under the `@geddes-xrd` scope, named by `napi.packageName` in
+`node/package.json`:
+
+| Target | Package |
+|---|---|
+| `x86_64-pc-windows-msvc` | `@geddes-xrd/geddes-win32-x64-msvc` |
+| `aarch64-pc-windows-msvc` | `@geddes-xrd/geddes-win32-arm64-msvc` |
+| `aarch64-apple-darwin` | `@geddes-xrd/geddes-darwin-arm64` |
+| `x86_64-unknown-linux-gnu` | `@geddes-xrd/geddes-linux-x64-gnu` |
+| `aarch64-unknown-linux-gnu` | `@geddes-xrd/geddes-linux-arm64-gnu` |
+
+`geddes` lists them as optional dependencies, so npm installs only the package
+for the user's system, and the loader in `geddes` requires it. Releases up to
+1.1.0 depend on unscoped `geddes-<platform>` packages instead.
+
+The [npm publishing workflow](https://github.com/jcwang587/geddes/blob/main/.github/workflows/publish-npm.yml)
+runs on release tags and publishes the tested tarballs through npm trusted
+publishing, platform packages first and `geddes` last. Before it uploads
+anything, it looks up every package on the registry. It stops if a package
+does not exist yet, or if a version already on npm differs from the tested
+tarball.
+
+### Set up a new platform package
+
+npm configures trusted publishing only for a package that already exists, so
+the publishing run of the first release that includes a new platform package
+stops before it uploads anything. Complete that release by hand from the
+tag-triggered `publish npm` run whose package checks all passed:
+
+1. Download the run's `node-packages` artifact. Keep its run ID and the
+   original tarballs.
+2. With an npm account that has two-factor authentication and can publish to
+   the `geddes-xrd` organization, publish each new platform package from its
+   tarball in the artifact:
+
+   ```sh
+   npm publish PATH_TO_TARBALL --ignore-scripts --access public
+   ```
+
+   A scoped package is private unless it is published with public access.
+   Publish only these tested tarballs: the workflow skips a version already on
+   npm only when it matches the tested tarball byte for byte.
+3. Allow the publishing workflow to publish each new package:
+
+   ```sh
+   npm trust github PACKAGE_NAME --repo jcwang587/geddes --file publish-npm.yml --allow-publish
+   ```
+
+4. Publish the remaining packages, `geddes` last, from the same artifact:
+
+   ```sh
+   gh workflow run publish-npm.yml --ref vX.Y.Z -f publishToNPM=yes -f sourceRunId=RUN_ID
+   ```
+
+   The run verifies the original artifact, then skips each package already on
+   npm after checking its bytes and release tag.

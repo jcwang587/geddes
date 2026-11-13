@@ -15,13 +15,15 @@ const outputDir = resolve(outputArg)
 const pkg = JSON.parse(readFileSync(join(nodeDir, 'package.json'), 'utf8'))
 const targets = localTarget ? [localTarget] : pkg.napi.targets
 assert(targets.every(target => pkg.napi.targets.includes(target)), 'Unknown native target')
+// Users install the main package alone. It lists one platform package per
+// target as an optional dependency, named by napi.packageName under its scope.
+assert.match(pkg.napi.packageName ?? '', /^@[^/]+\/[^/]+$/, 'napi.packageName must be a scoped package name')
+const platformPackage = target => `${pkg.napi.packageName}-${parseTriple(target).platformArchABI}`
 const staging = mkdtempSync(join(tmpdir(), 'geddes-pack-'))
 mkdirSync(outputDir, { recursive: true })
 
 try {
-  pkg.optionalDependencies = Object.fromEntries(pkg.napi.targets.map(target => [
-    `${pkg.name}-${parseTriple(target).platformArchABI}`, pkg.version,
-  ]))
+  pkg.optionalDependencies = Object.fromEntries(pkg.napi.targets.map(target => [platformPackage(target), pkg.version]))
   writeFileSync(join(staging, 'package.json'), JSON.stringify(pkg, null, 2) + '\n')
   copyFileSync(join(nodeDir, '..', 'README.md'), join(staging, 'README.md'))
   copyFileSync(join(nodeDir, '..', 'LICENSE'), join(staging, 'LICENSE'))
@@ -50,12 +52,23 @@ try {
     wrapper = generatedWrapper
     types = generatedTypes
     const nativeDir = join(staging, 'npm', abi)
+    const manifest = JSON.parse(readFileSync(join(nativeDir, 'package.json'), 'utf8'))
+    assert.equal(manifest.name, platformPackage(target), `Unexpected package name for ${target}`)
+    assert.equal(manifest.publishConfig?.access, 'public', `${manifest.name} must be published with public access`)
+    // napi's readme calls this the binary of napi.packageName, which is no
+    // package: name the package users install.
+    writeFileSync(join(nativeDir, 'README.md'), `# \`${manifest.name}\`\n\n` +
+      `This is the **${target}** binary for \`${pkg.name}\`. Install \`${pkg.name}\`, ` +
+      `and npm installs this package with it on that platform.\n`)
     const binary = `${pkg.napi.binaryName}.${abi}.node`
     copyFileSync(join(built, binary), join(nativeDir, binary))
     copyFileSync(join(staging, 'LICENSE'), join(nativeDir, 'LICENSE'))
     pack(nativeDir, target)
   }
 
+  for (const name of Object.keys(pkg.optionalDependencies)) {
+    assert(wrapper.includes(`require('${name}')`), `Generated loader does not require ${name}`)
+  }
   writeFileSync(join(staging, 'index.js'), wrapper)
   writeFileSync(join(staging, 'index.d.ts'), types)
   pack(staging, null)
