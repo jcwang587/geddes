@@ -19,7 +19,7 @@ use std::io::{Read, Seek};
 use std::path::Path;
 
 /// One diffraction pattern. Extra file columns are deliberately not returned.
-#[cfg_attr(feature = "python", pyclass(get_all, skip_from_py_object))]
+#[cfg_attr(feature = "python", pyclass(get_all))]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Pattern {
     /// Diffraction angle 2θ, in degrees, strictly increasing.
