@@ -11,9 +11,8 @@ export const expectedSourceChecks = [
   'check / build (macos-latest, aarch64-apple-darwin)',
   'check / build (ubuntu-latest, x86_64-unknown-linux-gnu, --use-napi-cross)',
   'check / build (ubuntu-latest, aarch64-unknown-linux-gnu, --use-napi-cross)',
-  ...['ubuntu-latest', 'ubuntu-24.04-arm', 'macos-latest', 'windows-latest']
-    .flatMap(host => ['16', '24'].map(version => `check / install-test (${host}, ${version})`)),
-  'check / install-test (windows-11-arm, 20)', 'check / install-test (windows-11-arm, 24)',
+  ...['ubuntu-latest', 'ubuntu-24.04-arm', 'macos-latest', 'windows-latest', 'windows-11-arm']
+    .flatMap(host => ['20', '26'].map(version => `check / install-test (${host}, ${version})`)),
 ]
 
 export function validatePublishSource({ run, jobs, artifact, repository, version, tagSha }) {
