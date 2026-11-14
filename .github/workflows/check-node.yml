@@ -17,7 +17,7 @@ jobs:
       - run: python tests/check_release_version.py
       - uses: actions/setup-node@v7
         with:
-          node-version: "24"
+          node-version: "26"
       - name: Test publish recovery guards
         run: node --test node/scripts/publish-packages.test.mjs node/scripts/validate-publish-source.test.mjs
 
@@ -47,7 +47,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: "24"
+          node-version: "26"
           cache: npm
           cache-dependency-path: node/package-lock.json
       - uses: dtolnay/rust-toolchain@stable
@@ -74,7 +74,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: "24"
+          node-version: "26"
           cache: npm
           cache-dependency-path: node/package-lock.json
       - run: npm ci
@@ -99,14 +99,8 @@ jobs:
       fail-fast: false
       matrix:
         host: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest, windows-11-arm]
-        node-version: ["16", "24"]
-        exclude:
-          - host: windows-11-arm
-            node-version: "16"
-        include:
-          # Node 16 has no Windows ARM64 distribution.
-          - host: windows-11-arm
-            node-version: "20"
+        # The oldest supported Node.js and the newest LTS.
+        node-version: ["20", "26"]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
