@@ -41,6 +41,6 @@
     "version": "npm run sync:version && napi version"
   },
   "devDependencies": {
-    "@napi-rs/cli": "^3.5.1"
+    "@napi-rs/cli": "^3.10.12"
   }
 }
